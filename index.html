@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flappy Horizon — Çok Karakterli & 5 Dünyalı Web Oyunu</title>
+    <meta name="description" content="Drone, Kartal, Roket ve Füze ile 5 farklı büyüleyici dünyada uçun, halkaları toplayın ve rekorlar kırın!">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Rajdhani:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-wrapper">
+        <!-- Oyun Canvas Alanı -->
+        <canvas id="gameCanvas" width="440" height="680"></canvas>
+
+        <!-- Oyun İçi HUD (Üst Bilgi Çubuğu) -->
+        <div id="inGameHUD" class="hud-overlay hidden">
+            <div class="hud-top">
+                <div class="hud-stat score-box">
+                    <span class="hud-label">SKOR</span>
+                    <span id="liveScore" class="hud-val">0</span>
+                </div>
+                <div class="hud-center">
+                    <span id="liveLevelName" class="level-badge">Neon Siber Şehir</span>
+                </div>
+                <div class="hud-stat best-box">
+                    <span class="hud-label">REKOR</span>
+                    <span id="liveBestScore" class="hud-val">0</span>
+                </div>
+            </div>
+            <div class="hud-actions">
+                <button id="btnPause" class="hud-icon-btn" title="Duraklat">⏸️</button>
+                <button class="hud-icon-btn btn-sound-toggle" title="Sesi Aç/Kapat">🔊</button>
+            </div>
+        </div>
+
+        <!-- Ana Menü -->
+        <div id="mainMenu" class="menu-overlay">
+            <div class="menu-header">
+                <div class="game-logo">
+                    <span class="logo-sub">YENİ NESİL</span>
+                    <h1 class="logo-title">FLAPPY<br><span class="gradient-text">HORIZON</span></h1>
+                </div>
+                <p id="menuLevelSubtitle" class="menu-subtitle">Dünya: Neon Siber Şehir</p>
+            </div>
+
+            <div class="menu-actions">
+                <button id="btnStartGame" class="btn btn-primary pulse-anim">
+                    <span class="btn-icon">🚀</span> HEMEN BAŞLA
+                </button>
+                <button id="btnOpenGarage" class="btn btn-secondary">
+                    <span class="btn-icon">🛠️</span> KARAKTER ATÖLYESİ
+                </button>
+                <button id="btnOpenLevels" class="btn btn-tertiary">
+                    <span class="btn-icon">🌍</span> SEVİYE VE DÜNYALAR
+                </button>
+            </div>
+
+            <div class="menu-footer">
+                <div class="controls-hint">
+                    <span>🖱️ Tıkla</span> • <span>⌨️ Boşluk</span> • <span>📱 Ekrana Dokun</span>
+                </div>
+                <button class="btn-sound-toggle sound-pill-btn">🔊 Ses Açık</button>
+            </div>
+        </div>
+
+        <!-- Game Over Ekranı -->
+        <div id="gameOverMenu" class="menu-overlay hidden">
+            <div class="game-over-box">
+                <h2 class="game-over-title">GÖREV SONLANDI</h2>
+                <div id="newRecordBadge" class="new-record-badge hidden">✨ YENİ REKOR! ✨</div>
+
+                <div class="score-summary-card">
+                    <div class="score-item">
+                        <span class="score-label">TOPLANAN SKOR</span>
+                        <span id="finalScore" class="score-value">0</span>
+                    </div>
+                    <div class="score-divider"></div>
+                    <div class="score-item">
+                        <span class="score-label">EN YÜKSEK REKOR</span>
+                        <span id="finalBestScore" class="score-value highlight">0</span>
+                    </div>
+                </div>
+
+                <div class="medal-section">
+                    <span class="medal-label">KAZANILAN MADALYA</span>
+                    <div id="medalContainer" class="medal-wrapper"></div>
+                </div>
+
+                <div class="game-over-actions">
+                    <button id="btnRestartGame" class="btn btn-primary">
+                        <span class="btn-icon">🔄</span> TEKRAR UÇ
+                    </button>
+                    <button id="btnBackToMenu" class="btn btn-secondary">
+                        <span class="btn-icon">🏠</span> ANA MENÜ
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Duraklatma (Pause) Menüsü -->
+        <div id="pauseOverlay" class="menu-overlay hidden">
+            <div class="pause-box">
+                <h2>OYUN DURAKLATILDI</h2>
+                <p>Uçuşa devam etmek için butona basın.</p>
+                <button id="btnResume" class="btn btn-primary">▶️ DEVAM ET</button>
+            </div>
+        </div>
+
+        <!-- Karakter Atölyesi (Garage Modal) -->
+        <div id="garageModal" class="modal-overlay hidden">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3>🛠️ Karakter Atölyesi</h3>
+                    <button id="btnCloseGarage" class="btn-close">✕</button>
+                </div>
+
+                <!-- Canlı Önizleme Kutusu -->
+                <div class="preview-box">
+                    <canvas id="previewCanvas" width="220" height="150"></canvas>
+                    <span class="preview-tag">CANLI ÖNİZLEME</span>
+                </div>
+
+                <!-- Karakter Seçim Sekmeleri -->
+                <div class="char-tabs">
+                    <button class="char-tab-btn active" data-char="drone">🛸 Drone</button>
+                    <button class="char-tab-btn" data-char="kartal">🦅 Kartal</button>
+                    <button class="char-tab-btn" data-char="roket">🚀 Roket</button>
+                    <button class="char-tab-btn" data-char="fuze">🎯 Füze</button>
+                </div>
+
+                <!-- Özelleştirme Ayar Panelleri -->
+                <div class="custom-panel-body">
+                    <!-- DRONE PANEL -->
+                    <div id="panel_drone" class="char-config-panel">
+                        <div class="control-row">
+                            <label>Gövde Modeli:</label>
+                            <select id="droneModelSelect" class="form-select">
+                                <option value="quad">Quad-Rotor Klasik</option>
+                                <option value="stealth">Hexa-Stealth</option>
+                                <option value="sphere">Siber-Küre</option>
+                            </select>
+                        </div>
+                        <div class="control-row">
+                            <label>Gövde Rengi:</label>
+                            <input type="color" id="droneBodyColor" value="#1e293b" class="color-picker">
+                        </div>
+                        <div class="control-row">
+                            <label>Kol & Çerçeve Rengi:</label>
+                            <input type="color" id="droneAccentColor" value="#38bdf8" class="color-picker">
+                        </div>
+                        <div class="control-row">
+                            <label>LED & Pervane Işığı:</label>
+                            <input type="color" id="droneLightColor" value="#00f7ff" class="color-picker">
+                        </div>
+                    </div>
+
+                    <!-- KARTAL PANEL -->
+                    <div id="panel_kartal" class="char-config-panel hidden">
+                        <div class="control-row">
+                            <label>Kartal Cinsi / Irk:</label>
+                            <select id="eagleSpeciesSelect" class="form-select">
+                                <option value="altin">Altın Kartal</option>
+                                <option value="sahin">Kızıl Şahin</option>
+                                <option value="akbas">Akbaş Amerikan Kartalı</option>
+                                <option value="siber">Siber Zırhlı Kartal</option>
+                            </select>
+                        </div>
+                        <div class="control-row">
+                            <label>Gövde Tüy Rengi:</label>
+                            <input type="color" id="eagleBodyColor" value="#5c3818" class="color-picker">
+                        </div>
+                        <div class="control-row">
+                            <label>Kanat Rengi:</label>
+                            <input type="color" id="eagleWingColor" value="#3d230d" class="color-picker">
+                        </div>
+                        <div class="control-row">
+                            <label>Gaga Rengi:</label>
+                            <input type="color" id="eagleBeakColor" value="#f59e0b" class="color-picker">
+                        </div>
+                        <div class="control-row">
+                            <label>Göz Işıltısı:</label>
+                            <input type="color" id="eagleEyeColor" value="#fbbf24" class="color-picker">
+                        </div>
+                    </div>
+
+                    <!-- ROKET PANEL -->
+                    <div id="panel_roket" class="char-config-panel hidden">
+                        <div class="control-row">
+                            <label>Roket Kasası:</label>
+                            <select id="rocketModelSelect" class="form-select">
+                                <option value="falcon">Modern Falcon</option>
+                                <option value="apollo">Klasik Apollo</option>
+                                <option value="scifi">Sci-Fi Hiper Sürücü</option>
+                            </select>
+                        </div>
+                        <div class="control-row">
+                            <label>Gövde Rengi:</label>
+                            <input type="color" id="rocketBodyColor" value="#f8fafc" class="color-picker">
+                        </div>
+                        <div class="control-row">
+                            <label>Kanatçık Rengi:</label>
+                            <input type="color" id="rocketFinColor" value="#ef4444" class="color-picker">
+                        </div>
+                        <div class="control-row">
+                            <label>Kokpit Cam Rengi:</label>
+                            <input type="color" id="rocketCockpitColor" value="#38bdf8" class="color-picker">
+                        </div>
+                        <div class="control-row">
+                            <label>İtiş / Alev Türü:</label>
+                            <select id="rocketFlameSelect" class="form-select">
+                                <option value="#ff5722">🔥 Klasik Turuncu Alev</option>
+                                <option value="#00f7ff">⚡ Camgöbeği Plazma</option>
+                                <option value="#a855f7">🌌 Mor Antimadde</option>
+                                <option value="#10b981">🟢 Zümrüt İyon Jet</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- FÜZE PANEL -->
+                    <div id="panel_fuze" class="char-config-panel hidden">
+                        <div class="control-row">
+                            <label>Gövde Kaplaması:</label>
+                            <select id="missileCamoSelect" class="form-select">
+                                <option value="cyber">Siberpunk Neon</option>
+                                <option value="stealth">Gizli Hayalet (Stealth)</option>
+                                <option value="military">Askeri Taktik</option>
+                                <option value="crimson">Kızıl Harp</option>
+                            </select>
+                        </div>
+                        <div class="control-row">
+                            <label>Gövde Rengi:</label>
+                            <input type="color" id="missileBodyColor" value="#18181b" class="color-picker">
+                        </div>
+                        <div class="control-row">
+                            <label>Harp Başlığı Rengi:</label>
+                            <input type="color" id="missileWarheadColor" value="#f43f5e" class="color-picker">
+                        </div>
+                        <div class="control-row">
+                            <label>Yön Kanatçığı Rengi:</label>
+                            <input type="color" id="missileFinColor" value="#71717a" class="color-picker">
+                        </div>
+                        <div class="control-row">
+                            <label>Egzoz Kıvılcım İzi:</label>
+                            <input type="color" id="missileTrailColor" value="#ff9100" class="color-picker">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Seviye ve Dünya Seçim Modalı -->
+        <div id="levelModal" class="modal-overlay hidden">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3>🌍 Seviye ve Dünyalar</h3>
+                    <button id="btnCloseLevels" class="btn-close">✕</button>
+                </div>
+                <div class="level-grid" id="levelGridContainer">
+                    <!-- Dinamik JavaScript ile doldurulur -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/audio.js"></script>
+    <script src="js/particles.js"></script>
+    <script src="js/characters.js"></script>
+    <script src="js/levels.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "name": "flappy-horizon",
+  "version": "1.0.0",
+  "description": "Flappy Horizon - Cok Karakterli ve 5 Dunyali Web Oyunu",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "keywords": ["game", "flappy-bird", "canvas", "html5"],
+  "author": "",
+  "license": "MIT"
+}

@@ -1,0 +1,651 @@
+/* ==========================================================
+   FLAPPY HORIZON - MODERN ARCADE & GLASSMORPHISM STYLESHEET
+   ========================================================== */
+
+:root {
+    --bg-dark: #090d16;
+    --primary: #38bdf8;
+    --primary-glow: rgba(56, 189, 248, 0.4);
+    --accent: #f43f5e;
+    --accent-glow: rgba(244, 63, 94, 0.4);
+    --neon-green: #10b981;
+    --neon-yellow: #fbbf24;
+    --surface-glass: rgba(15, 23, 42, 0.82);
+    --surface-glass-border: rgba(255, 255, 255, 0.12);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --font-heading: 'Rajdhani', sans-serif;
+    --font-body: 'Outfit', sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    background: radial-gradient(circle at center, #111827 0%, #030712 100%);
+    font-family: var(--font-body);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+/* Oyun Çerçevesi (Arcade Kabin / Mobil Boyutlandırma) */
+.game-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 440px;
+    height: 100vh;
+    max-height: 680px;
+    background: #000;
+    border-radius: 24px;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 35px var(--primary-glow);
+    overflow: hidden;
+    border: 2px solid var(--surface-glass-border);
+}
+
+@media (max-width: 480px) {
+    .game-wrapper {
+        max-width: 100vw;
+        max-height: 100vh;
+        border-radius: 0;
+        border: none;
+    }
+}
+
+#gameCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+}
+
+/* ==========================================================
+   HUD (OYUN İÇİ ÜST PANEL)
+   ========================================================== */
+.hud-overlay {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    right: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.hud-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.hud-stat {
+    background: var(--surface-glass);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--surface-glass-border);
+    padding: 6px 14px;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.hud-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+
+.hud-val {
+    font-family: var(--font-heading);
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+}
+
+.score-box .hud-val {
+    color: var(--neon-yellow);
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+}
+
+.level-badge {
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.hud-actions {
+    display: flex;
+    gap: 8px;
+    pointer-events: auto;
+}
+
+.hud-icon-btn {
+    background: var(--surface-glass);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--surface-glass-border);
+    color: #fff;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.hud-icon-btn:hover {
+    transform: scale(1.08);
+    border-color: var(--primary);
+}
+
+/* ==========================================================
+   MENÜ & OVERLAY KATMANLARI
+   ========================================================== */
+.menu-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(9, 13, 22, 0.85);
+    backdrop-filter: blur(12px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 36px 24px 28px;
+    z-index: 20;
+    text-align: center;
+    transition: opacity 0.3s ease;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.game-logo {
+    margin-bottom: 8px;
+}
+
+.logo-sub {
+    font-family: var(--font-heading);
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    color: var(--primary);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.logo-title {
+    font-family: var(--font-heading);
+    font-size: 46px;
+    font-weight: 900;
+    line-height: 0.95;
+    letter-spacing: 0.04em;
+    color: #fff;
+}
+
+.gradient-text {
+    background: linear-gradient(135deg, #38bdf8 0%, #a855f7 50%, #f43f5e 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.menu-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.menu-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    max-width: 280px;
+}
+
+/* ==========================================================
+   BUTON STILLERI
+   ========================================================== */
+.btn {
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 700;
+    padding: 14px 20px;
+    border-radius: 14px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    letter-spacing: 0.03em;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+    color: #fff;
+    box-shadow: 0 8px 25px var(--primary-glow);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(56, 189, 248, 0.6);
+}
+
+.btn-secondary {
+    background: var(--surface-glass);
+    border: 1px solid var(--surface-glass-border);
+    color: var(--text-main);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+
+.btn-tertiary {
+    background: rgba(168, 85, 247, 0.15);
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    color: #d8b4fe;
+}
+
+.btn-tertiary:hover {
+    background: rgba(168, 85, 247, 0.25);
+    transform: translateY(-2px);
+}
+
+.pulse-anim {
+    animation: pulseGlow 2s infinite;
+}
+
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 15px var(--primary-glow); }
+    50% { box-shadow: 0 0 30px rgba(56, 189, 248, 0.7); }
+}
+
+.menu-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.controls-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 6px 14px;
+    border-radius: 20px;
+}
+
+.sound-pill-btn {
+    background: transparent;
+    border: 1px solid var(--surface-glass-border);
+    color: var(--text-muted);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+/* ==========================================================
+   GAME OVER KARTI
+   ========================================================== */
+.game-over-box {
+    width: 100%;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: auto;
+}
+
+.game-over-title {
+    font-family: var(--font-heading);
+    font-size: 34px;
+    font-weight: 900;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+}
+
+.new-record-badge {
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+    animation: bounce 1s infinite alternate;
+}
+
+@keyframes bounce {
+    from { transform: scale(0.95); }
+    to { transform: scale(1.05); }
+}
+
+.score-summary-card {
+    background: var(--surface-glass);
+    border: 1px solid var(--surface-glass-border);
+    border-radius: 18px;
+    width: 100%;
+    padding: 16px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.score-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.score-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.score-value {
+    font-family: var(--font-heading);
+    font-size: 32px;
+    font-weight: 800;
+    color: #fff;
+}
+
+.score-value.highlight {
+    color: var(--neon-yellow);
+}
+
+.score-divider {
+    width: 1px;
+    height: 40px;
+    background: var(--surface-glass-border);
+}
+
+.medal-section {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.medal-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.medal {
+    font-size: 15px;
+    font-weight: 800;
+    padding: 6px 14px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.medal.diamond { background: rgba(56, 189, 248, 0.2); border: 1px solid #38bdf8; color: #38bdf8; }
+.medal.gold { background: rgba(251, 191, 36, 0.2); border: 1px solid #fbbf24; color: #fbbf24; }
+.medal.silver { background: rgba(203, 213, 225, 0.2); border: 1px solid #cbd5e1; color: #f1f5f9; }
+.medal.bronze { background: rgba(217, 119, 6, 0.2); border: 1px solid #d97706; color: #f59e0b; }
+.medal.none { background: rgba(255, 255, 255, 0.05); color: var(--text-muted); }
+
+.game-over-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+/* ==========================================================
+   MODALLAR (ÖZELLEŞTİRME & SEVİYELER)
+   ========================================================== */
+.modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 30;
+}
+
+.modal-card {
+    background: #0f172a;
+    border: 1px solid var(--surface-glass-border);
+    border-radius: 20px;
+    width: 100%;
+    max-height: 92%;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.modal-header h3 {
+    font-family: var(--font-heading);
+    font-size: 20px;
+    font-weight: 800;
+    color: #fff;
+}
+
+.btn-close {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #fff;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+/* Atölye Önizleme Kutusu */
+.preview-box {
+    position: relative;
+    background: #020617;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 14px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 14px;
+    overflow: hidden;
+}
+
+.preview-tag {
+    position: absolute;
+    bottom: 6px;
+    right: 8px;
+    font-size: 9px;
+    font-weight: 800;
+    background: rgba(56, 189, 248, 0.2);
+    color: var(--primary);
+    padding: 2px 6px;
+    border-radius: 6px;
+}
+
+/* Karakter Sekmeleri */
+.char-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.char-tab-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--surface-glass-border);
+    color: var(--text-muted);
+    padding: 8px 4px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.char-tab-btn.active {
+    background: var(--primary);
+    color: #042f2e;
+    border-color: var(--primary);
+    box-shadow: 0 0 12px var(--primary-glow);
+}
+
+/* Kontrol Satırları */
+.custom-panel-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.control-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 8px 12px;
+    border-radius: 10px;
+}
+
+.control-row label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.form-select {
+    background: #1e293b;
+    color: #fff;
+    border: 1px solid var(--surface-glass-border);
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: var(--font-body);
+    outline: none;
+}
+
+.color-picker {
+    width: 36px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    cursor: pointer;
+}
+
+/* ==========================================================
+   SEVİYE KARTLARI (LEVEL GRID)
+   ========================================================== */
+.level-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.level-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--surface-glass-border);
+    border-radius: 14px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.level-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--primary);
+}
+
+.level-card.active {
+    background: rgba(56, 189, 248, 0.12);
+    border-color: var(--primary);
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+}
+
+.level-icon {
+    font-size: 24px;
+    width: 44px;
+    height: 44px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.level-info {
+    flex: 1;
+    text-align: left;
+}
+
+.level-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.level-subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.badge-active {
+    background: var(--primary);
+    color: #042f2e;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 12px;
+}
+
+/* Duraklatma */
+.pause-box {
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
