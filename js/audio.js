@@ -1,7 +1,7 @@
 /**
  * Flappy Horizon - Akıllı Pik Analizli & Karaktere Özel Ses Motoru
- * - Karakter bazlı özelleştirilmiş iniş / süzülme (descent) sesleri
- * - Karaktere özel çarpışma / patlama / game over sesleri
+ * - Her karaktere özel net ve duyulabilir iniş/süzülme (descent) sesleri
+ * - Her karaktere özel güçlü çarpışma/patlama/yanma sesleri
  * - Milisaniye hassasiyetinde 1s / 0.85s / 0.90s zıplama motoru
  */
 
@@ -11,8 +11,8 @@ class SoundSystem {
         this.muted = false;
         this.bgmMuted = false;
         this.sfxMuted = false;
-        this.bgmVolume = 0.16; // Arka plan müzik seviyesi
-        this.sfxVolume = 0.80; // Efekt ses seviyesi
+        this.bgmVolume = 0.15; // Arka plan müzik seviyesi
+        this.sfxVolume = 0.85; // Efekt ses seviyesi (net ve güçlü)
 
         // BGM Durumu
         this.isBgmPlaying = false;
@@ -164,6 +164,9 @@ class SoundSystem {
         const playbackRate = options.playbackRate || 1.0;
         const volumeScale = options.volumeScale || 1.0;
 
+        let played = false;
+
+        // 1. Web Audio API Buffer
         if (this.ctx && this.audioBuffers[key]) {
             try {
                 const now = this.ctx.currentTime;
@@ -185,13 +188,15 @@ class SoundSystem {
                 const safeOffset = Math.min(offset, maxOffset);
 
                 source.start(now, safeOffset, duration);
+                played = true;
                 return;
             } catch (err) {
                 console.warn('Buffer oynatma hatası:', err);
             }
         }
 
-        if (this.audioElements[key]) {
+        // 2. HTML5 Audio
+        if (!played && this.audioElements[key]) {
             try {
                 const clone = this.audioElements[key].cloneNode();
                 clone.volume = Math.min(1.0, this.sfxVolume * volumeScale);
@@ -206,19 +211,21 @@ class SoundSystem {
                         if (synthFallbackFn) synthFallbackFn.call(this);
                     });
                 }
+                played = true;
                 return;
             } catch (err) {
                 console.warn('HTML5 Audio hatası:', err);
             }
         }
 
-        if (synthFallbackFn) {
+        // 3. Prosedürel Sentezleyici
+        if (!played && synthFallbackFn) {
             synthFallbackFn.call(this);
         }
     }
 
     // =========================================================================
-    // 🛸 1. DRONE SESLERİ (0.90s İtiş & İniş & Çarpışma)
+    // 🛸 1. DRONE SESLERİ (0.90s Zıplama & İniş Vızıltısı & Kaza/Kıvılcım)
     // =========================================================================
     playDroneSound() {
         this.playSnippet('drone', {
@@ -236,7 +243,7 @@ class SoundSystem {
             osc.frequency.setValueAtTime(320, now);
             osc.frequency.exponentialRampToValueAtTime(480, now + 0.15);
             osc.frequency.exponentialRampToValueAtTime(260, now + 0.6);
-            gain.gain.setValueAtTime(0.3 * this.sfxVolume, now);
+            gain.gain.setValueAtTime(0.35 * this.sfxVolume, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
             osc.connect(gain);
             gain.connect(this.ctx.destination);
@@ -245,7 +252,7 @@ class SoundSystem {
         });
     }
 
-    // Drone Aşağı İniş Süzülme Vızıltısı
+    // Drone Aşağı İniş Süzülme Vızıltısı (Duyulabilir Netlikte)
     playDroneDescent() {
         if (this.muted || this.sfxMuted) return;
         this.init();
@@ -255,24 +262,25 @@ class SoundSystem {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(340, now);
-        osc.frequency.exponentialRampToValueAtTime(180, now + 0.45);
+        osc.frequency.setValueAtTime(420, now);
+        osc.frequency.exponentialRampToValueAtTime(220, now + 0.35);
 
         const filter = this.ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(450, now);
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(600, now);
+        filter.Q.setValueAtTime(2.5, now);
 
-        gain.gain.setValueAtTime(0.12 * this.sfxVolume, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+        gain.gain.setValueAtTime(0.40 * this.sfxVolume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
 
         osc.connect(filter);
         filter.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.45);
+        osc.stop(now + 0.35);
     }
 
-    // Drone Çarpışma / Parçalanma & Elektrik Kıvılcımı
+    // Drone Çarpışma: Metal Kırılması + Elektrik Kıvılcımı
     playDroneCrash() {
         if (this.muted || this.sfxMuted) return;
         this.init();
@@ -280,35 +288,36 @@ class SoundSystem {
 
         const now = this.ctx.currentTime;
 
-        // 1. Metal & Pervane Kırılma Darbesi
+        // 1. Metal Darbe Kırılması
         const hitOsc = this.ctx.createOscillator();
         const hitGain = this.ctx.createGain();
         hitOsc.type = 'sawtooth';
-        hitOsc.frequency.setValueAtTime(520, now);
-        hitOsc.frequency.exponentialRampToValueAtTime(60, now + 0.25);
-        hitGain.gain.setValueAtTime(0.55 * this.sfxVolume, now);
-        hitGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        hitOsc.frequency.setValueAtTime(600, now);
+        hitOsc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
+        hitGain.gain.setValueAtTime(0.7 * this.sfxVolume, now);
+        hitGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
         hitOsc.connect(hitGain);
         hitGain.connect(this.ctx.destination);
         hitOsc.start(now);
-        hitOsc.stop(now + 0.25);
+        hitOsc.stop(now + 0.3);
 
-        // 2. Kısa Devre & Elektrik Kıvılcım Cızırtısı (Electric Spark Zap)
+        // 2. Kısa Devre & Kıvılcım (Electric Zap)
+        if (!this.noiseBuffer) this.createNoiseBuffer();
         if (this.noiseBuffer) {
             const noise = this.ctx.createBufferSource();
             noise.buffer = this.noiseBuffer;
             const filter = this.ctx.createBiquadFilter();
             filter.type = 'bandpass';
-            filter.frequency.setValueAtTime(2800, now);
-            filter.Q.setValueAtTime(6.0, now);
+            filter.frequency.setValueAtTime(3200, now);
+            filter.Q.setValueAtTime(5.0, now);
             const noiseGain = this.ctx.createGain();
-            noiseGain.gain.setValueAtTime(0.4 * this.sfxVolume, now + 0.05);
-            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+            noiseGain.gain.setValueAtTime(0.6 * this.sfxVolume, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
             noise.connect(filter);
             filter.connect(noiseGain);
             noiseGain.connect(this.ctx.destination);
-            noise.start(now + 0.05);
-            noise.stop(now + 0.4);
+            noise.start(now);
+            noise.stop(now + 0.45);
         }
     }
 
@@ -331,7 +340,7 @@ class SoundSystem {
             osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(2600, now);
             osc.frequency.exponentialRampToValueAtTime(1600, now + duration);
-            gain.gain.setValueAtTime(0.4 * this.sfxVolume, now);
+            gain.gain.setValueAtTime(0.45 * this.sfxVolume, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
             osc.connect(gain);
             gain.connect(this.ctx.destination);
@@ -340,61 +349,79 @@ class SoundSystem {
         });
     }
 
-    // Kartal Aşağı İniş / Süzülme Rüzgarı (Feather Wind Glide)
+    // Kartal Aşağı İniş / Süzülme Rüzgarı (Duyulabilir Aerodinamik Hışırtı)
     playEagleDescent() {
         if (this.muted || this.sfxMuted) return;
         this.init();
-        if (!this.ctx || !this.noiseBuffer) return;
+        if (!this.ctx) return;
 
         const now = this.ctx.currentTime;
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = this.noiseBuffer;
+        if (!this.noiseBuffer) this.createNoiseBuffer();
 
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'bandpass';
-        filter.frequency.setValueAtTime(450, now);
-        filter.frequency.exponentialRampToValueAtTime(180, now + 0.4);
-        filter.Q.setValueAtTime(2.0, now);
+        if (this.noiseBuffer) {
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = this.noiseBuffer;
 
-        const gain = this.ctx.createGain();
-        gain.gain.setValueAtTime(0.20 * this.sfxVolume, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(650, now);
+            filter.frequency.exponentialRampToValueAtTime(220, now + 0.35);
+            filter.Q.setValueAtTime(2.0, now);
 
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.ctx.destination);
-        noise.start(now);
-        noise.stop(now + 0.4);
+            const gain = this.ctx.createGain();
+            gain.gain.setValueAtTime(0.40 * this.sfxVolume, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.ctx.destination);
+            noise.start(now);
+            noise.stop(now + 0.35);
+        }
     }
 
-    // Kartal Çarpışma / Acı Çığlık & Darbe
+    // Kartal Çarpışma: Tiz ve Acı Çığlık + Kanat Darbesi
     playEagleCrash() {
         if (this.muted || this.sfxMuted) return;
         this.init();
 
-        // 1. Kartalın en yüksek çığlığının tiz ve acı kısmı
+        // 1. Tiz Kartal Acı Çığlığı (Dosyadan veya Sentezden)
         this.playSnippet('kartal', {
             offset: 1.70,
-            duration: 0.75,
+            duration: 0.85,
             fadeTime: 0.20,
-            playbackRate: 1.25, // Daha tiz ve acı bir çığlık
-            volumeScale: 1.8
+            playbackRate: 1.35, // Tiz acı çığlık
+            volumeScale: 1.9
+        }, () => {
+            if (!this.ctx) return;
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(3200, now);
+            osc.frequency.exponentialRampToValueAtTime(1400, now + 0.5);
+            gain.gain.setValueAtTime(0.65 * this.sfxVolume, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.5);
         });
 
-        // 2. Fiziksel Çarpma & Kanat Dağılma Sesi
+        // 2. Darbe Sesi
         if (this.ctx) {
             const now = this.ctx.currentTime;
             const thud = this.ctx.createOscillator();
             const thudGain = this.ctx.createGain();
             thud.type = 'triangle';
-            thud.frequency.setValueAtTime(140, now);
-            thud.frequency.exponentialRampToValueAtTime(35, now + 0.25);
-            thudGain.gain.setValueAtTime(0.45 * this.sfxVolume, now);
-            thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            thud.frequency.setValueAtTime(160, now);
+            thud.frequency.exponentialRampToValueAtTime(30, now + 0.3);
+            thudGain.gain.setValueAtTime(0.6 * this.sfxVolume, now);
+            thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
             thud.connect(thudGain);
             thudGain.connect(this.ctx.destination);
             thud.start(now);
-            thud.stop(now + 0.25);
+            thud.stop(now + 0.3);
         }
     }
 
@@ -411,7 +438,7 @@ class SoundSystem {
         });
     }
 
-    // Roket Aşağı İniş Atmosferik Uğultusu
+    // Roket Aşağı İniş Atmosferik Dalış Uğultusu
     playRocketDescent() {
         if (this.muted || this.sfxMuted) return;
         this.init();
@@ -421,24 +448,24 @@ class SoundSystem {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(110, now);
-        osc.frequency.exponentialRampToValueAtTime(55, now + 0.45);
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.exponentialRampToValueAtTime(65, now + 0.4);
 
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(220, now);
+        filter.frequency.setValueAtTime(300, now);
 
-        gain.gain.setValueAtTime(0.18 * this.sfxVolume, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+        gain.gain.setValueAtTime(0.35 * this.sfxVolume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
 
         osc.connect(filter);
         filter.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.45);
+        osc.stop(now + 0.4);
     }
 
-    // Roket Çarpışma / Devasa Yakıt Tankı Patlaması (Heavy Blast)
+    // Roket Çarpışma: Devasa Yakıt Tankı İnfilakı (Heavy Explosion)
     playRocketCrash() {
         if (this.muted || this.sfxMuted) return;
         this.init();
@@ -446,35 +473,36 @@ class SoundSystem {
 
         const now = this.ctx.currentTime;
 
-        // 1. Devasa Sub-bass Şok Dalgası
+        // 1. Derin Sub-bass Şok Patlaması
         const subOsc = this.ctx.createOscillator();
         const subGain = this.ctx.createGain();
         subOsc.type = 'sine';
-        subOsc.frequency.setValueAtTime(120, now);
-        subOsc.frequency.exponentialRampToValueAtTime(25, now + 0.5);
-        subGain.gain.setValueAtTime(0.8 * this.sfxVolume, now);
-        subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+        subOsc.frequency.setValueAtTime(140, now);
+        subOsc.frequency.exponentialRampToValueAtTime(20, now + 0.6);
+        subGain.gain.setValueAtTime(0.9 * this.sfxVolume, now);
+        subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
         subOsc.connect(subGain);
         subGain.connect(this.ctx.destination);
         subOsc.start(now);
-        subOsc.stop(now + 0.5);
+        subOsc.stop(now + 0.6);
 
-        // 2. Alevli Patlama Gürültüsü
+        // 2. Alevli Patlama Yanma Gürültüsü
+        if (!this.noiseBuffer) this.createNoiseBuffer();
         if (this.noiseBuffer) {
             const noise = this.ctx.createBufferSource();
             noise.buffer = this.noiseBuffer;
             const filter = this.ctx.createBiquadFilter();
             filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(800, now);
-            filter.frequency.exponentialRampToValueAtTime(90, now + 0.6);
+            filter.frequency.setValueAtTime(950, now);
+            filter.frequency.exponentialRampToValueAtTime(80, now + 0.7);
             const noiseGain = this.ctx.createGain();
-            noiseGain.gain.setValueAtTime(0.7 * this.sfxVolume, now);
-            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+            noiseGain.gain.setValueAtTime(0.85 * this.sfxVolume, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
             noise.connect(filter);
             filter.connect(noiseGain);
             noiseGain.connect(this.ctx.destination);
             noise.start(now);
-            noise.stop(now + 0.6);
+            noise.stop(now + 0.7);
         }
     }
 
@@ -501,19 +529,19 @@ class SoundSystem {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(1100, now);
-        osc.frequency.exponentialRampToValueAtTime(450, now + 0.38);
+        osc.frequency.setValueAtTime(1400, now);
+        osc.frequency.exponentialRampToValueAtTime(500, now + 0.35);
 
-        gain.gain.setValueAtTime(0.14 * this.sfxVolume, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+        gain.gain.setValueAtTime(0.35 * this.sfxVolume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
 
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.38);
+        osc.stop(now + 0.35);
     }
 
-    // Füze Çarpışma / Keskin Harp Başlığı Patlaması & Şarapnel
+    // Füze Çarpışma: Harp Başlığı İnfilakı & Metalik Şarapnel
     playMissileCrash() {
         if (this.muted || this.sfxMuted) return;
         this.init();
@@ -525,37 +553,38 @@ class SoundSystem {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(380, now);
-        osc.frequency.exponentialRampToValueAtTime(40, now + 0.35);
-        gain.gain.setValueAtTime(0.75 * this.sfxVolume, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.frequency.setValueAtTime(450, now);
+        osc.frequency.exponentialRampToValueAtTime(35, now + 0.4);
+        gain.gain.setValueAtTime(0.85 * this.sfxVolume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.35);
+        osc.stop(now + 0.4);
 
-        // 2. Şarapnel & Metalik Rezonans
+        // 2. Şarapnel & Metal Yankısı
+        if (!this.noiseBuffer) this.createNoiseBuffer();
         if (this.noiseBuffer) {
             const noise = this.ctx.createBufferSource();
             noise.buffer = this.noiseBuffer;
             const filter = this.ctx.createBiquadFilter();
             filter.type = 'bandpass';
-            filter.frequency.setValueAtTime(1600, now);
-            filter.frequency.exponentialRampToValueAtTime(250, now + 0.45);
+            filter.frequency.setValueAtTime(1800, now);
+            filter.frequency.exponentialRampToValueAtTime(200, now + 0.5);
             filter.Q.setValueAtTime(4.0, now);
             const noiseGain = this.ctx.createGain();
-            noiseGain.gain.setValueAtTime(0.6 * this.sfxVolume, now);
-            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+            noiseGain.gain.setValueAtTime(0.75 * this.sfxVolume, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
             noise.connect(filter);
             filter.connect(noiseGain);
             noiseGain.connect(this.ctx.destination);
             noise.start(now);
-            noise.stop(now + 0.45);
+            noise.stop(now + 0.5);
         }
     }
 
     // =========================================================================
-    // 🎮 GENEL KONTROL KÖPRÜLERİ (Zıplama, İniş ve Çarpışma Yönlendiricileri)
+    // 🎮 KONTROL KÖPRÜLERİ
     // =========================================================================
     playJump(charType = 'drone') {
         if (charType === 'drone') {
@@ -594,7 +623,7 @@ class SoundSystem {
     }
 
     // =========================================================================
-    // 🔔 5. SKOR, HALKA, GAME OVER & BUTON SESLERİ
+    // 🔔 SKOR, HALKA, GAME OVER & BUTON SESLERİ
     // =========================================================================
     playScore() {
         if (this.muted || this.sfxMuted) return;
@@ -686,7 +715,7 @@ class SoundSystem {
     }
 
     // =========================================================================
-    // 🎶 6. PROSEDÜREL RİTMİK ARKA PLAN MÜZİĞİ (SYNTHWAVE ARCADE BGM)
+    // 🎶 RİTMİK ARKA PLAN MÜZİĞİ (SYNTHWAVE ARCADE BGM)
     // =========================================================================
     startBGM() {
         if (this.muted || this.bgmMuted || this.isBgmPlaying) return;

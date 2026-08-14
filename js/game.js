@@ -260,8 +260,8 @@ class GameEngine {
             window.particleEngine.emitTrail(this.player.x, this.player.y, charType, charCfg);
         }
 
-        // İnişe geçiş anı süzülme sesi (Karakter zirveden inişe geçerken)
-        if (this.wasClimbing && this.player.vy > 0.8 && !this.descentPlayed) {
+        // İnişe geçiş anı süzülme sesi (Karakter zıplama zirvesinden inişe geçtiği an)
+        if (this.wasClimbing && this.player.vy >= 0.0 && !this.descentPlayed) {
             this.descentPlayed = true;
             this.wasClimbing = false;
             window.soundSystem.playDescent(charType);
