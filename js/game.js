@@ -38,6 +38,10 @@ class GameEngine {
         this.baseSpeed = 2.2;        // Başlangıç hızı dengelendi
         this.speed = this.baseSpeed;
 
+        // Kapalı Sütun & Pencere Sistemi
+        this.normalObstacleCount = 0; // Son kapalı sütundan bu yana normal engel sayısı
+        this.windowSoundCooldown = 0; // Pencere sesi cooldown
+
         // Skor ve İstatistikler
         this.score = 0;
         this.bestScore = 0;
@@ -134,6 +138,8 @@ class GameEngine {
         this.player.angle = -0.15;
         this.wasClimbing = true;
         this.descentPlayed = false;
+        this.normalObstacleCount = 0;
+        this.windowSoundCooldown = 0;
         this.obstacles = [];
         this.rings = [];
         this.obstacleTimer = 0; // İlk engelin gelmesi için bolca zaman
@@ -286,15 +292,43 @@ class GameEngine {
             this.spawnObstacle();
         }
 
+        // Pencere sesi cooldown
+        if (this.windowSoundCooldown > 0) this.windowSoundCooldown--;
+
         // Engelleri Güncelle & Çarpışma Kontrolü
         for (let i = this.obstacles.length - 1; i >= 0; i--) {
             const obs = this.obstacles[i];
             obs.x -= this.speed;
 
+            // Kapalı Sütun Pencere Animasyonu
+            if (obs.isWalled && obs.window) {
+                const w = obs.window;
+                w.timer += 1;
+
+                // Açılma/Kapanma Döngüsü
+                if (w.timer >= w.cycleDuration) {
+                    w.timer = 0;
+                    w.isOpen = !w.isOpen;
+                    // Pencere açılınca/kapanınca ses
+                    if (this.windowSoundCooldown <= 0) {
+                        window.soundSystem.playClick();
+                        this.windowSoundCooldown = 10;
+                    }
+                }
+
+                // Pürüzsüz Açılma Animasyonu (0→1 veya 1→0)
+                const animSpeed = 0.06;
+                if (w.isOpen) {
+                    w.openProgress = Math.min(1.0, w.openProgress + animSpeed);
+                } else {
+                    w.openProgress = Math.max(0.0, w.openProgress - animSpeed);
+                }
+            }
+
             // Skor Sayımı
             if (!obs.passed && obs.x + obs.width < this.player.x) {
                 obs.passed = true;
-                this.score++;
+                this.score += obs.isWalled ? 3 : 1; // Kapalı sütun = 3 puan bonus
                 window.soundSystem.playScore();
                 this.updateHUD();
             }
@@ -336,6 +370,18 @@ class GameEngine {
 
     spawnObstacle() {
         const obsWidth = 64;
+        this.normalObstacleCount++;
+
+        // Her 3-5 normal engelden sonra bir kapalı sütun (pencereli duvar) üret
+        const shouldSpawnWall = this.normalObstacleCount >= 3 + Math.floor(Math.random() * 3);
+
+        if (shouldSpawnWall) {
+            this.normalObstacleCount = 0;
+            this.spawnWalledObstacle(obsWidth);
+            return;
+        }
+
+        // Normal açık boşluklu engel
         const minTop = 60;
         const maxTop = this.height - this.groundHeight - this.gapSize - 60;
         const topHeight = Math.floor(Math.random() * (maxTop - minTop + 1)) + minTop;
@@ -346,7 +392,8 @@ class GameEngine {
             width: obsWidth,
             topY: topHeight,
             bottomY: bottomY,
-            passed: false
+            passed: false,
+            isWalled: false
         });
 
         // Seviye izin veriyorsa veya rastgele %60 ihtimalle araya neon halka yerleştir
@@ -361,18 +408,77 @@ class GameEngine {
         }
     }
 
+    // Kapalı Sütun + Açılır/Kapanır Pencere Üretici
+    spawnWalledObstacle(obsWidth) {
+        const playArea = this.height - this.groundHeight;
+        const windowHeight = 140; // Pencere açıklık yüksekliği (rahat geçiş)
+        const minWindowY = 80;
+        const maxWindowY = playArea - windowHeight - 40;
+        const windowY = Math.floor(Math.random() * (maxWindowY - minWindowY + 1)) + minWindowY;
+
+        // Açılma/kapanma zamanlama (frame cinsinden)
+        const openDuration = 90 + Math.floor(Math.random() * 40);   // ~1.5-2.2 saniye açık
+        const closeDuration = 55 + Math.floor(Math.random() * 30);  // ~0.9-1.4 saniye kapalı
+        const startOpen = Math.random() > 0.4; // %60 ihtimalle açık başla
+
+        this.obstacles.push({
+            x: this.width + 20,
+            width: obsWidth,
+            topY: 0,                    // Tamamen kapalı sütun: tavan
+            bottomY: playArea,          // Tamamen kapalı sütun: zemin
+            passed: false,
+            isWalled: true,
+            window: {
+                y: windowY,             // Pencerenin y konumu
+                height: windowHeight,   // Pencere açıklık yüksekliği
+                isOpen: startOpen,
+                openProgress: startOpen ? 1.0 : 0.0,  // Animasyon ilerlemesi (0=kapalı, 1=açık)
+                timer: 0,
+                cycleDuration: startOpen ? openDuration : closeDuration,
+                openDuration: openDuration,
+                closeDuration: closeDuration
+            }
+        });
+    }
+
     checkObstacleCollision(obs) {
         const px = this.player.x;
         const py = this.player.y;
         const r = this.player.radius * 0.82; // Hassas hitbox
 
-        // Üst Engel Kontrolü
+        // Karakter sütunun x aralığında mı?
         if (px + r > obs.x && px - r < obs.x + obs.width) {
-            if (py - r < obs.topY) {
-                return true;
-            }
-            if (py + r > obs.bottomY) {
-                return true;
+
+            if (obs.isWalled && obs.window) {
+                // Kapalı Sütun: Pencere açıksa pencereden geçebilir
+                const w = obs.window;
+                const currentWindowH = w.height * w.openProgress;
+                const windowCenter = w.y + w.height / 2;
+                const windowTop = windowCenter - currentWindowH / 2;
+                const windowBottom = windowCenter + currentWindowH / 2;
+
+                // Pencere yeterince açık değilse veya karakter pencere dışında
+                if (w.openProgress < 0.3) {
+                    // Pencere kapalı, tüm sütun duvar
+                    return true;
+                }
+
+                // Pencere aralığı dışındaysa çarpışma
+                if (py - r < windowTop || py + r > windowBottom) {
+                    return true;
+                }
+
+                // Pencere içinde, güvenli geçiş
+                return false;
+
+            } else {
+                // Normal engel: Üst veya alt boruya çarptı mı?
+                if (py - r < obs.topY) {
+                    return true;
+                }
+                if (py + r > obs.bottomY) {
+                    return true;
+                }
             }
         }
         return false;
@@ -409,7 +515,8 @@ class GameEngine {
                 obs.bottomY,
                 this.width,
                 this.height,
-                this.groundHeight
+                this.groundHeight,
+                obs  // Kapalı sütun verisi (isWalled, window)
             );
         }
 

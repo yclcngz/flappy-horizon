@@ -317,8 +317,8 @@ class LevelManager {
         ctx.globalAlpha = 1.0;
     }
 
-    // ENGEL (BORU / KULE / SÜTUN / GEMİ) ÇİZİMİ
-    drawObstacle(ctx, x, topY, bottomY, width, height, groundHeight) {
+    // ENGEL (BORU / KULE / SÜTUN / GEMİ / KAPALI DUVAR) ÇİZİMİ
+    drawObstacle(ctx, x, topY, bottomY, width, height, groundHeight, obsData) {
         const lvl = this.getCurrentLevel();
         const obsWidth = 64;
 
@@ -326,15 +326,86 @@ class LevelManager {
         ctx.shadowColor = lvl.obstacleBorder;
         ctx.shadowBlur = 8;
 
-        // --- ÜST ENGEL ---
-        if (topY > 0) {
-            this.renderObstacleBody(ctx, lvl, x, 0, obsWidth, topY, true);
-        }
+        if (obsData && obsData.isWalled && obsData.window) {
+            // ====== KAPALI SÜTUN + PENCERELİ DUVAR ======
+            const w = obsData.window;
+            const playArea = height - groundHeight;
+            const currentWindowH = w.height * w.openProgress;
+            const windowCenter = w.y + w.height / 2;
+            const windowTop = windowCenter - currentWindowH / 2;
+            const windowBottom = windowCenter + currentWindowH / 2;
 
-        // --- ALT ENGEL ---
-        const botH = height - groundHeight - bottomY;
-        if (botH > 0) {
-            this.renderObstacleBody(ctx, lvl, x, bottomY, obsWidth, botH, false);
+            // 1. Pencere ÜSTÜ duvar (tavandan pencere üstüne kadar)
+            if (windowTop > 0) {
+                this.renderObstacleBody(ctx, lvl, x, 0, obsWidth, windowTop, true);
+            }
+
+            // 2. Pencere ALTI duvar (pencere altından zemine kadar)
+            if (windowBottom < playArea) {
+                this.renderObstacleBody(ctx, lvl, x, windowBottom, obsWidth, playArea - windowBottom, false);
+            }
+
+            // 3. Pencere Çerçevesi ve Animasyon Efektleri
+            if (w.openProgress > 0.05) {
+                // Pencere açıklık alanı (geçiş bölgesi)
+                const openAlpha = 0.12 + w.openProgress * 0.15;
+                ctx.fillStyle = `rgba(255, 255, 255, ${openAlpha})`;
+                ctx.fillRect(x, windowTop, obsWidth, currentWindowH);
+
+                // Pencere kenar çerçeveleri (parlayan)
+                const borderGlow = w.isOpen ? 1.0 : 0.4 + w.openProgress * 0.6;
+                ctx.strokeStyle = lvl.obstacleBorder;
+                ctx.lineWidth = 3;
+                ctx.globalAlpha = borderGlow;
+
+                // Üst kenar
+                ctx.beginPath();
+                ctx.moveTo(x - 4, windowTop);
+                ctx.lineTo(x + obsWidth + 4, windowTop);
+                ctx.stroke();
+
+                // Alt kenar
+                ctx.beginPath();
+                ctx.moveTo(x - 4, windowBottom);
+                ctx.lineTo(x + obsWidth + 4, windowBottom);
+                ctx.stroke();
+
+                ctx.globalAlpha = 1.0;
+
+                // Pencere açıkken yeşil güvenli geçiş parıldaması
+                if (w.openProgress > 0.7) {
+                    const pulse = Math.sin(Date.now() * 0.008) * 0.15 + 0.3;
+                    ctx.fillStyle = `rgba(74, 222, 128, ${pulse})`;
+                    ctx.fillRect(x + 2, windowTop + 2, obsWidth - 4, currentWindowH - 4);
+                }
+            }
+
+            // 4. Pencere kapalıyken kırmızı tehlike göstergesi
+            if (w.openProgress < 0.3) {
+                const dangerPulse = Math.sin(Date.now() * 0.012) * 0.2 + 0.4;
+                ctx.fillStyle = `rgba(239, 68, 68, ${dangerPulse})`;
+                const closedTop = w.y;
+                const closedH = w.height;
+                ctx.fillRect(x + 8, closedTop + closedH / 2 - 6, obsWidth - 16, 12);
+            }
+
+            // 5. Sürgü mekanizma rayları (sol ve sağ kenarlarda)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.fillRect(x - 2, w.y, 4, w.height);
+            ctx.fillRect(x + obsWidth - 2, w.y, 4, w.height);
+
+        } else {
+            // ====== NORMAL ENGEL (Mevcut Sistem) ======
+            // --- ÜST ENGEL ---
+            if (topY > 0) {
+                this.renderObstacleBody(ctx, lvl, x, 0, obsWidth, topY, true);
+            }
+
+            // --- ALT ENGEL ---
+            const botH = height - groundHeight - bottomY;
+            if (botH > 0) {
+                this.renderObstacleBody(ctx, lvl, x, bottomY, obsWidth, botH, false);
+            }
         }
 
         ctx.restore();
