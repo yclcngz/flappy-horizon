@@ -327,7 +327,7 @@ class LevelManager {
         ctx.shadowBlur = 8;
 
         if (obsData && obsData.isWalled && obsData.window) {
-            // ====== KAPALI SÜTUN + PENCERELİ DUVAR ======
+            // ====== KAPALI SÜTUN + SÜRGÜ PENCERELİ DUVAR ======
             const w = obsData.window;
             const playArea = height - groundHeight;
             const currentWindowH = w.height * w.openProgress;
@@ -345,63 +345,41 @@ class LevelManager {
                 this.renderObstacleBody(ctx, lvl, x, windowBottom, obsWidth, playArea - windowBottom, false);
             }
 
-            // 3. Pencere Çerçevesi ve Animasyon Efektleri
+            // 3. Pencere açıkken: Hafif arka plan ve ince kenar çizgisi
             if (w.openProgress > 0.05) {
-                // Pencere açıklık alanı (geçiş bölgesi)
-                const openAlpha = 0.12 + w.openProgress * 0.15;
-                ctx.fillStyle = `rgba(255, 255, 255, ${openAlpha})`;
+                // Hafif şeffaf geçiş alanı
+                ctx.fillStyle = `rgba(255, 255, 255, ${0.06 + w.openProgress * 0.06})`;
                 ctx.fillRect(x, windowTop, obsWidth, currentWindowH);
 
-                // Pencere kenar çerçeveleri (parlayan)
-                const borderGlow = w.isOpen ? 1.0 : 0.4 + w.openProgress * 0.6;
+                // Üst ve alt sürgü kenar çizgileri
                 ctx.strokeStyle = lvl.obstacleBorder;
-                ctx.lineWidth = 3;
-                ctx.globalAlpha = borderGlow;
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.7;
 
-                // Üst kenar
                 ctx.beginPath();
-                ctx.moveTo(x - 4, windowTop);
-                ctx.lineTo(x + obsWidth + 4, windowTop);
+                ctx.moveTo(x - 3, windowTop);
+                ctx.lineTo(x + obsWidth + 3, windowTop);
                 ctx.stroke();
 
-                // Alt kenar
                 ctx.beginPath();
-                ctx.moveTo(x - 4, windowBottom);
-                ctx.lineTo(x + obsWidth + 4, windowBottom);
+                ctx.moveTo(x - 3, windowBottom);
+                ctx.lineTo(x + obsWidth + 3, windowBottom);
                 ctx.stroke();
 
                 ctx.globalAlpha = 1.0;
-
-                // Pencere açıkken yeşil güvenli geçiş parıldaması
-                if (w.openProgress > 0.7) {
-                    const pulse = Math.sin(Date.now() * 0.008) * 0.15 + 0.3;
-                    ctx.fillStyle = `rgba(74, 222, 128, ${pulse})`;
-                    ctx.fillRect(x + 2, windowTop + 2, obsWidth - 4, currentWindowH - 4);
-                }
             }
 
-            // 4. Pencere kapalıyken kırmızı tehlike göstergesi
-            if (w.openProgress < 0.3) {
-                const dangerPulse = Math.sin(Date.now() * 0.012) * 0.2 + 0.4;
-                ctx.fillStyle = `rgba(239, 68, 68, ${dangerPulse})`;
-                const closedTop = w.y;
-                const closedH = w.height;
-                ctx.fillRect(x + 8, closedTop + closedH / 2 - 6, obsWidth - 16, 12);
-            }
-
-            // 5. Sürgü mekanizma rayları (sol ve sağ kenarlarda)
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
-            ctx.fillRect(x - 2, w.y, 4, w.height);
-            ctx.fillRect(x + obsWidth - 2, w.y, 4, w.height);
+            // 4. Sürgü rayları (sol ve sağ kenarlarda ince çizgi)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+            ctx.fillRect(x - 1, w.y, 2, w.height);
+            ctx.fillRect(x + obsWidth - 1, w.y, 2, w.height);
 
         } else {
             // ====== NORMAL ENGEL (Mevcut Sistem) ======
-            // --- ÜST ENGEL ---
             if (topY > 0) {
                 this.renderObstacleBody(ctx, lvl, x, 0, obsWidth, topY, true);
             }
 
-            // --- ALT ENGEL ---
             const botH = height - groundHeight - bottomY;
             if (botH > 0) {
                 this.renderObstacleBody(ctx, lvl, x, bottomY, obsWidth, botH, false);

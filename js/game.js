@@ -305,19 +305,22 @@ class GameEngine {
                 const w = obs.window;
                 w.timer += 1;
 
-                // Açılma/Kapanma Döngüsü
+                // Phase-based açılma/kapanma döngüsü
                 if (w.timer >= w.cycleDuration) {
                     w.timer = 0;
-                    w.isOpen = !w.isOpen;
-                    // Pencere açılınca/kapanınca ses
-                    if (this.windowSoundCooldown <= 0) {
-                        window.soundSystem.playClick();
-                        this.windowSoundCooldown = 10;
+                    if (w.phase === 'open') {
+                        w.phase = 'closing';
+                        w.isOpen = false;
+                        w.cycleDuration = w.closeDuration;
+                    } else {
+                        w.phase = 'open';
+                        w.isOpen = true;
+                        w.cycleDuration = w.openDuration;
                     }
                 }
 
-                // Pürüzsüz Açılma Animasyonu (0→1 veya 1→0)
-                const animSpeed = 0.06;
+                // Pürüzsüz açılma/kapanma animasyonu
+                const animSpeed = 0.08;
                 if (w.isOpen) {
                     w.openProgress = Math.min(1.0, w.openProgress + animSpeed);
                 } else {
@@ -409,34 +412,52 @@ class GameEngine {
     }
 
     // Kapalı Sütun + Açılır/Kapanır Pencere Üretici
+    // Zamanlama: Oyun hızıyla senkronize - karakter ulaştığında pencere açık olur
     spawnWalledObstacle(obsWidth) {
         const playArea = this.height - this.groundHeight;
-        const windowHeight = 140; // Pencere açıklık yüksekliği (rahat geçiş)
-        const minWindowY = 80;
+        const windowHeight = 150; // Rahat geçiş penceresi
+        const minWindowY = 70;
         const maxWindowY = playArea - windowHeight - 40;
         const windowY = Math.floor(Math.random() * (maxWindowY - minWindowY + 1)) + minWindowY;
 
-        // Açılma/kapanma zamanlama (frame cinsinden)
-        const openDuration = 90 + Math.floor(Math.random() * 40);   // ~1.5-2.2 saniye açık
-        const closeDuration = 55 + Math.floor(Math.random() * 30);  // ~0.9-1.4 saniye kapalı
-        const startOpen = Math.random() > 0.4; // %60 ihtimalle açık başla
+        // Hıza göre senkronize zamanlama hesaplaması:
+        // Sütun ekrandan karakter konumuna kadar ne kadar sürede gelir?
+        const distanceToPlayer = (this.width + 20) - this.player.x;
+        const framesToReach = Math.ceil(distanceToPlayer / this.speed);
+
+        // Pencere açık süresi: Karakter ulaşıp geçecek kadar uzun
+        // Geçiş süresi = sütun genişliği / hız (frame) + güvenlik payı
+        const framesToCross = Math.ceil(obsWidth / this.speed) + 20;
+
+        // Açık kalma süresi: Karakter geçişi + %50 güvenlik payı
+        const openDuration = framesToCross + Math.floor(framesToCross * 0.5);
+        // Kapalı kalma süresi: Kısa ve hıza bağlı (ileri seviyelerde zorluk)
+        const closeDuration = Math.max(25, Math.floor(40 - this.score * 0.3));
+
+        // Toplam döngü süresi
+        const totalCycle = openDuration + closeDuration;
+
+        // Pencere, karakter ulaştığında açık olacak şekilde başlangıç timer ayarla
+        // Pencere açık başlar, karakter geldiğinde açık döngüdedir
+        const startTimer = Math.max(0, framesToReach % totalCycle);
 
         this.obstacles.push({
             x: this.width + 20,
             width: obsWidth,
-            topY: 0,                    // Tamamen kapalı sütun: tavan
-            bottomY: playArea,          // Tamamen kapalı sütun: zemin
+            topY: 0,
+            bottomY: playArea,
             passed: false,
             isWalled: true,
             window: {
-                y: windowY,             // Pencerenin y konumu
-                height: windowHeight,   // Pencere açıklık yüksekliği
-                isOpen: startOpen,
-                openProgress: startOpen ? 1.0 : 0.0,  // Animasyon ilerlemesi (0=kapalı, 1=açık)
+                y: windowY,
+                height: windowHeight,
+                isOpen: true,             // Her zaman açık başla
+                openProgress: 1.0,        // Tam açık
                 timer: 0,
-                cycleDuration: startOpen ? openDuration : closeDuration,
+                phase: 'open',            // 'open' veya 'closing'
                 openDuration: openDuration,
-                closeDuration: closeDuration
+                closeDuration: closeDuration,
+                cycleDuration: openDuration // İlk döngü açık
             }
         });
     }
