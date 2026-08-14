@@ -113,6 +113,8 @@ class GameEngine {
         if (this.state !== 'PLAYING') return;
         this.player.vy = this.player.jumpForce;
         this.player.isFlapping = true;
+        this.wasClimbing = true;
+        this.descentPlayed = false;
         setTimeout(() => { this.player.isFlapping = false; }, 120);
 
         const charType = window.characterManager.selectedCharacter;
@@ -130,6 +132,8 @@ class GameEngine {
         this.player.y = this.height * 0.38;
         this.player.vy = -2.4; // Başlangıçta hafif yukarı süzülme ivmesi
         this.player.angle = -0.15;
+        this.wasClimbing = true;
+        this.descentPlayed = false;
         this.obstacles = [];
         this.rings = [];
         this.obstacleTimer = 0; // İlk engelin gelmesi için bolca zaman
@@ -151,10 +155,14 @@ class GameEngine {
         this.screenShake = 16;
 
         this.saveBestScore();
-        window.soundSystem.playHit();
+
+        const charType = window.characterManager.selectedCharacter;
+        // Karaktere özel çarpışma / patlama sesi
+        window.soundSystem.playCharacterCrash(charType);
+
         setTimeout(() => {
             window.soundSystem.playGameOver();
-        }, 150);
+        }, 320);
 
         window.particleEngine.emitExplosion(this.player.x, this.player.y);
 
@@ -252,14 +260,11 @@ class GameEngine {
             window.particleEngine.emitTrail(this.player.x, this.player.y, charType, charCfg);
         }
 
-        // Kartal için periyodik doğal çığlık sesi (Ortalama her 10-15 saniyede bir)
-        if (charType === 'kartal') {
-            if (!this.eagleCryCooldown) this.eagleCryCooldown = Math.floor(Math.random() * 400 + 500);
-            this.eagleCryCooldown--;
-            if (this.eagleCryCooldown <= 0) {
-                window.soundSystem.playEagleScreech();
-                this.eagleCryCooldown = Math.floor(Math.random() * 500 + 600); // Yeni rastgele aralık
-            }
+        // İnişe geçiş anı süzülme sesi (Karakter zirveden inişe geçerken)
+        if (this.wasClimbing && this.player.vy > 0.8 && !this.descentPlayed) {
+            this.descentPlayed = true;
+            this.wasClimbing = false;
+            window.soundSystem.playDescent(charType);
         }
 
         // Zemin ve Tavan Çarpışma Kontrolü

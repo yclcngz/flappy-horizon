@@ -1,8 +1,8 @@
 /**
- * Flappy Horizon - Akıllı Pik Analizli & Uzatılmış Web Audio Motoru
- * - Sesler artık 1.4s - 1.8s boyunca doğal ve tok şekilde sürer.
- * - Kartal ve diğer sesler için otomatik pik tespiti (en yüksek sesli yerden başlatma).
- * - Yumuşak sönümlenme (fade-out) ve zengin ses seviyesi.
+ * Flappy Horizon - Akıllı Pik Analizli & Karaktere Özel Ses Motoru
+ * - Karakter bazlı özelleştirilmiş iniş / süzülme (descent) sesleri
+ * - Karaktere özel çarpışma / patlama / game over sesleri
+ * - Milisaniye hassasiyetinde 1s / 0.85s / 0.90s zıplama motoru
  */
 
 class SoundSystem {
@@ -12,7 +12,7 @@ class SoundSystem {
         this.bgmMuted = false;
         this.sfxMuted = false;
         this.bgmVolume = 0.16; // Arka plan müzik seviyesi
-        this.sfxVolume = 0.80; // Efekt ses seviyesi (yükseltildi)
+        this.sfxVolume = 0.80; // Efekt ses seviyesi
 
         // BGM Durumu
         this.isBgmPlaying = false;
@@ -38,12 +38,12 @@ class SoundSystem {
             fuze: null
         };
 
-        // En yüksek sesli (Peak) başlangıç noktaları (Saniye cinsinden)
+        // En yüksek sesli (Peak) başlangıç noktaları
         this.peakOffsets = {
-            drone: 0.0,
-            kartal: 0.0,
-            roket: 0.0,
-            fuze: 0.0
+            drone: 0.40,
+            kartal: 1.65,
+            roket: 0.85,
+            fuze: 0.35
         };
 
         // HTML5 Audio Yedekleri
@@ -114,45 +114,10 @@ class SoundSystem {
             const arrayBuffer = await response.arrayBuffer();
             const decodedBuffer = await this.ctx.decodeAudioData(arrayBuffer);
             this.audioBuffers[key] = decodedBuffer;
-
-            // En yüksek volümlü (Pik) noktayı otomatik analiz et
-            const peakTime = this.findPeakOffset(decodedBuffer);
-            this.peakOffsets[key] = peakTime;
-
-            console.log(`✓ Ses yüklendi: ${key} | Süre: ${decodedBuffer.duration.toFixed(2)}s | Pik Ofseti: ${peakTime.toFixed(2)}s`);
+            console.log(`✓ Ses yüklendi: ${key} (${url})`);
         } catch (e) {
-            console.info(`Özel ses (${key}) Web Audio ile çözülemedi, HTML5/Synth devrede:`, e.message);
+            console.info(`Özel ses (${key}) Web Audio ile çözülemedi:`, e.message);
         }
-    }
-
-    // Ses dalgasındaki en yüksek enerjili / volümlü yeri bulan akıllı algoritma
-    findPeakOffset(buffer, windowSec = 0.25) {
-        if (!buffer) return 0;
-        const data = buffer.getChannelData(0);
-        const sampleRate = buffer.sampleRate;
-        const windowSamples = Math.floor(sampleRate * windowSec);
-        const stepSamples = Math.floor(sampleRate * 0.05); // 50ms kaydırmalı pencere
-
-        let maxRms = 0;
-        let peakSample = 0;
-
-        for (let i = 0; i < data.length - windowSamples; i += stepSamples) {
-            let sum = 0;
-            for (let j = 0; j < windowSamples; j++) {
-                const val = data[i + j];
-                sum += val * val;
-            }
-            const rms = Math.sqrt(sum / windowSamples);
-            if (rms > maxRms) {
-                maxRms = rms;
-                peakSample = i;
-            }
-        }
-
-        // Vuruşun başlangıcını kaçırmamak için pikin 60ms öncesinden başlat
-        const attackLeadSec = 0.06;
-        const peakTimeSec = Math.max(0, (peakSample / sampleRate) - attackLeadSec);
-        return peakTimeSec;
     }
 
     createNoiseBuffer() {
@@ -186,20 +151,19 @@ class SoundSystem {
     }
 
     // =========================================================================
-    // 🔊 DOĞAL & UZATILMIŞ SES OYNATICI (1.4s - 1.8s Süreli & Fade-Out Zarfı)
+    // 🔊 DOĞAL & ZAMAN AYARLI ÖZEL SES OYNATICI
     // =========================================================================
     playSnippet(key, options = {}, synthFallbackFn = null) {
         if (this.muted || this.sfxMuted) return;
         this.init();
 
-        const duration = options.duration || 1.5; // ~1.5 saniye doğal süre
+        const duration = options.duration || 1.0;
         const defaultOffset = this.peakOffsets[key] || 0.0;
         const offset = options.offset !== undefined ? options.offset : defaultOffset;
-        const fadeTime = options.fadeTime || 0.35;
+        const fadeTime = options.fadeTime || 0.20;
         const playbackRate = options.playbackRate || 1.0;
         const volumeScale = options.volumeScale || 1.0;
 
-        // 1. Web Audio API Buffer (En temiz ve gecikmesiz yöntem)
         if (this.ctx && this.audioBuffers[key]) {
             try {
                 const now = this.ctx.currentTime;
@@ -210,7 +174,6 @@ class SoundSystem {
                 const gainNode = this.ctx.createGain();
                 const targetVol = this.sfxVolume * volumeScale;
 
-                // Başlangıç sesi ve doğal bitiş sönümlemesi
                 gainNode.gain.setValueAtTime(targetVol, now);
                 gainNode.gain.setValueAtTime(targetVol, now + Math.max(0, duration - fadeTime));
                 gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
@@ -218,7 +181,6 @@ class SoundSystem {
                 source.connect(gainNode);
                 gainNode.connect(this.ctx.destination);
 
-                // Dosya boyutunu aşmayacak şekilde güvenli başlangıç
                 const maxOffset = Math.max(0, this.audioBuffers[key].duration - 0.2);
                 const safeOffset = Math.min(offset, maxOffset);
 
@@ -229,7 +191,6 @@ class SoundSystem {
             }
         }
 
-        // 2. HTML5 Audio Yedek Kırpıcı
         if (this.audioElements[key]) {
             try {
                 const clone = this.audioElements[key].cloneNode();
@@ -251,19 +212,18 @@ class SoundSystem {
             }
         }
 
-        // 3. Prosedürel Sentezleyici Yedek
         if (synthFallbackFn) {
             synthFallbackFn.call(this);
         }
     }
 
     // =========================================================================
-    // 🛸 1. DRONE: 0.90 Saniye Süren Motor Vızıltısı
+    // 🛸 1. DRONE SESLERİ (0.90s İtiş & İniş & Çarpışma)
     // =========================================================================
     playDroneSound() {
         this.playSnippet('drone', {
             offset: 0.40,
-            duration: 0.90, // 0.90 saniye
+            duration: 0.90,
             fadeTime: 0.18,
             playbackRate: 1.0,
             volumeScale: 1.8
@@ -285,124 +245,318 @@ class SoundSystem {
         });
     }
 
+    // Drone Aşağı İniş Süzülme Vızıltısı
+    playDroneDescent() {
+        if (this.muted || this.sfxMuted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(340, now);
+        osc.frequency.exponentialRampToValueAtTime(180, now + 0.45);
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(450, now);
+
+        gain.gain.setValueAtTime(0.12 * this.sfxVolume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.45);
+    }
+
+    // Drone Çarpışma / Parçalanma & Elektrik Kıvılcımı
+    playDroneCrash() {
+        if (this.muted || this.sfxMuted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+
+        // 1. Metal & Pervane Kırılma Darbesi
+        const hitOsc = this.ctx.createOscillator();
+        const hitGain = this.ctx.createGain();
+        hitOsc.type = 'sawtooth';
+        hitOsc.frequency.setValueAtTime(520, now);
+        hitOsc.frequency.exponentialRampToValueAtTime(60, now + 0.25);
+        hitGain.gain.setValueAtTime(0.55 * this.sfxVolume, now);
+        hitGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        hitOsc.connect(hitGain);
+        hitGain.connect(this.ctx.destination);
+        hitOsc.start(now);
+        hitOsc.stop(now + 0.25);
+
+        // 2. Kısa Devre & Elektrik Kıvılcım Cızırtısı (Electric Spark Zap)
+        if (this.noiseBuffer) {
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = this.noiseBuffer;
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(2800, now);
+            filter.Q.setValueAtTime(6.0, now);
+            const noiseGain = this.ctx.createGain();
+            noiseGain.gain.setValueAtTime(0.4 * this.sfxVolume, now + 0.05);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+            noise.connect(filter);
+            filter.connect(noiseGain);
+            noiseGain.connect(this.ctx.destination);
+            noise.start(now + 0.05);
+            noise.stop(now + 0.4);
+        }
+    }
+
     // =========================================================================
-    // 🦅 2. KARTAL: En Yüksek Çığlıktan Başlayan (1.65s) 1.0 Saniyelik Ses
+    // 🦅 2. KARTAL SESLERİ (1.0s Çırpma & Rüzgar İnişi & Acı Çığlık)
     // =========================================================================
     playEagleSound() {
         this.playSnippet('kartal', {
-            offset: 1.65, // En yüksek çığlığın başladığı nokta
-            duration: 1.0, // Tam 1.0 saniye
+            offset: 1.65,
+            duration: 1.0,
             fadeTime: 0.25,
             playbackRate: 1.0,
             volumeScale: 1.6
         }, () => {
             if (!this.ctx) return;
             const now = this.ctx.currentTime;
-            const duration = 0.9;
-            const modOsc = this.ctx.createOscillator();
-            const modGain = this.ctx.createGain();
-            modOsc.type = 'sine';
-            modOsc.frequency.setValueAtTime(30, now);
-            modGain.gain.setValueAtTime(180, now);
-
-            const carrierOsc = this.ctx.createOscillator();
-            carrierOsc.type = 'sawtooth';
-            carrierOsc.frequency.setValueAtTime(2700, now);
-            carrierOsc.frequency.linearRampToValueAtTime(3200, now + 0.12);
-            carrierOsc.frequency.exponentialRampToValueAtTime(1600, now + duration);
-
-            modOsc.connect(carrierOsc.frequency);
-            const filter = this.ctx.createBiquadFilter();
-            filter.type = 'bandpass';
-            filter.frequency.setValueAtTime(2400, now);
-            filter.frequency.exponentialRampToValueAtTime(1800, now + duration);
-            filter.Q.setValueAtTime(4.5, now);
-
+            const duration = 0.8;
+            const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
-            gain.gain.setValueAtTime(0.001, now);
-            gain.gain.linearRampToValueAtTime(0.45 * this.sfxVolume, now + 0.08);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(2600, now);
+            osc.frequency.exponentialRampToValueAtTime(1600, now + duration);
+            gain.gain.setValueAtTime(0.4 * this.sfxVolume, now);
             gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
-            carrierOsc.connect(filter);
-            filter.connect(gain);
+            osc.connect(gain);
             gain.connect(this.ctx.destination);
-            modOsc.start(now);
-            carrierOsc.start(now);
-            modOsc.stop(now + duration);
-            carrierOsc.stop(now + duration);
+            osc.start(now);
+            osc.stop(now + duration);
         });
     }
 
-    playEagleScreech() {
-        this.playEagleSound();
+    // Kartal Aşağı İniş / Süzülme Rüzgarı (Feather Wind Glide)
+    playEagleDescent() {
+        if (this.muted || this.sfxMuted) return;
+        this.init();
+        if (!this.ctx || !this.noiseBuffer) return;
+
+        const now = this.ctx.currentTime;
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = this.noiseBuffer;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(450, now);
+        filter.frequency.exponentialRampToValueAtTime(180, now + 0.4);
+        filter.Q.setValueAtTime(2.0, now);
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.20 * this.sfxVolume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        noise.start(now);
+        noise.stop(now + 0.4);
+    }
+
+    // Kartal Çarpışma / Acı Çığlık & Darbe
+    playEagleCrash() {
+        if (this.muted || this.sfxMuted) return;
+        this.init();
+
+        // 1. Kartalın en yüksek çığlığının tiz ve acı kısmı
+        this.playSnippet('kartal', {
+            offset: 1.70,
+            duration: 0.75,
+            fadeTime: 0.20,
+            playbackRate: 1.25, // Daha tiz ve acı bir çığlık
+            volumeScale: 1.8
+        });
+
+        // 2. Fiziksel Çarpma & Kanat Dağılma Sesi
+        if (this.ctx) {
+            const now = this.ctx.currentTime;
+            const thud = this.ctx.createOscillator();
+            const thudGain = this.ctx.createGain();
+            thud.type = 'triangle';
+            thud.frequency.setValueAtTime(140, now);
+            thud.frequency.exponentialRampToValueAtTime(35, now + 0.25);
+            thudGain.gain.setValueAtTime(0.45 * this.sfxVolume, now);
+            thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            thud.connect(thudGain);
+            thudGain.connect(this.ctx.destination);
+            thud.start(now);
+            thud.stop(now + 0.25);
+        }
     }
 
     // =========================================================================
-    // 🚀 3. ROKET: 0.85 Saniye Süren İtiş Patlaması
+    // 🚀 3. ROKET SESLERİ (0.85s İtiş & Dalış Uğultusu & Devasa Patlama)
     // =========================================================================
     playRocketSound() {
         this.playSnippet('roket', {
             offset: 0.85,
-            duration: 0.85, // 0.85 saniye
+            duration: 0.85,
             fadeTime: 0.18,
             playbackRate: 1.0,
             volumeScale: 1.3
-        }, () => {
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            if (this.noiseBuffer) {
-                const noise = this.ctx.createBufferSource();
-                noise.buffer = this.noiseBuffer;
-                const filter = this.ctx.createBiquadFilter();
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(600, now);
-                filter.frequency.exponentialRampToValueAtTime(150, now + 0.7);
-                const gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(0.55 * this.sfxVolume, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
-                noise.connect(filter);
-                filter.connect(gain);
-                gain.connect(this.ctx.destination);
-                noise.start(now);
-                noise.stop(now + 0.7);
-            }
         });
     }
 
+    // Roket Aşağı İniş Atmosferik Uğultusu
+    playRocketDescent() {
+        if (this.muted || this.sfxMuted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(110, now);
+        osc.frequency.exponentialRampToValueAtTime(55, now + 0.45);
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(220, now);
+
+        gain.gain.setValueAtTime(0.18 * this.sfxVolume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.45);
+    }
+
+    // Roket Çarpışma / Devasa Yakıt Tankı Patlaması (Heavy Blast)
+    playRocketCrash() {
+        if (this.muted || this.sfxMuted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+
+        // 1. Devasa Sub-bass Şok Dalgası
+        const subOsc = this.ctx.createOscillator();
+        const subGain = this.ctx.createGain();
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(120, now);
+        subOsc.frequency.exponentialRampToValueAtTime(25, now + 0.5);
+        subGain.gain.setValueAtTime(0.8 * this.sfxVolume, now);
+        subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+        subOsc.connect(subGain);
+        subGain.connect(this.ctx.destination);
+        subOsc.start(now);
+        subOsc.stop(now + 0.5);
+
+        // 2. Alevli Patlama Gürültüsü
+        if (this.noiseBuffer) {
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = this.noiseBuffer;
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(800, now);
+            filter.frequency.exponentialRampToValueAtTime(90, now + 0.6);
+            const noiseGain = this.ctx.createGain();
+            noiseGain.gain.setValueAtTime(0.7 * this.sfxVolume, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+            noise.connect(filter);
+            filter.connect(noiseGain);
+            noiseGain.connect(this.ctx.destination);
+            noise.start(now);
+            noise.stop(now + 0.6);
+        }
+    }
+
     // =========================================================================
-    // 🎯 4. FÜZE: 0.85 Saniye Süren Sesüstü Jet İtişi
+    // 🎯 4. FÜZE SESLERİ (0.85s İtiş & Dalış Islığı & Harp Başlığı Patlaması)
     // =========================================================================
     playMissileSound() {
         this.playSnippet('fuze', {
             offset: 0.35,
-            duration: 0.85, // 0.85 saniye
+            duration: 0.85,
             fadeTime: 0.18,
             playbackRate: 1.0,
             volumeScale: 1.2
-        }, () => {
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            if (this.noiseBuffer) {
-                const noise = this.ctx.createBufferSource();
-                noise.buffer = this.noiseBuffer;
-                const filter = this.ctx.createBiquadFilter();
-                filter.type = 'bandpass';
-                filter.frequency.setValueAtTime(1200, now);
-                filter.frequency.exponentialRampToValueAtTime(300, now + 0.6);
-                filter.Q.setValueAtTime(3.5, now);
-                const gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(0.5 * this.sfxVolume, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-                noise.connect(filter);
-                filter.connect(gain);
-                gain.connect(this.ctx.destination);
-                noise.start(now);
-                noise.stop(now + 0.6);
-            }
         });
     }
 
-    // Karakter seçimine göre zıplama
+    // Füze Aşağı İniş Sesüstü Hava Yarıcı Islık (Whistle Dive)
+    playMissileDescent() {
+        if (this.muted || this.sfxMuted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1100, now);
+        osc.frequency.exponentialRampToValueAtTime(450, now + 0.38);
+
+        gain.gain.setValueAtTime(0.14 * this.sfxVolume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.38);
+    }
+
+    // Füze Çarpışma / Keskin Harp Başlığı Patlaması & Şarapnel
+    playMissileCrash() {
+        if (this.muted || this.sfxMuted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+
+        // 1. Keskin Patlama Şoku
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(380, now);
+        osc.frequency.exponentialRampToValueAtTime(40, now + 0.35);
+        gain.gain.setValueAtTime(0.75 * this.sfxVolume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.35);
+
+        // 2. Şarapnel & Metalik Rezonans
+        if (this.noiseBuffer) {
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = this.noiseBuffer;
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(1600, now);
+            filter.frequency.exponentialRampToValueAtTime(250, now + 0.45);
+            filter.Q.setValueAtTime(4.0, now);
+            const noiseGain = this.ctx.createGain();
+            noiseGain.gain.setValueAtTime(0.6 * this.sfxVolume, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+            noise.connect(filter);
+            filter.connect(noiseGain);
+            noiseGain.connect(this.ctx.destination);
+            noise.start(now);
+            noise.stop(now + 0.45);
+        }
+    }
+
+    // =========================================================================
+    // 🎮 GENEL KONTROL KÖPRÜLERİ (Zıplama, İniş ve Çarpışma Yönlendiricileri)
+    // =========================================================================
     playJump(charType = 'drone') {
         if (charType === 'drone') {
             this.playDroneSound();
@@ -415,8 +569,32 @@ class SoundSystem {
         }
     }
 
+    playDescent(charType = 'drone') {
+        if (charType === 'drone') {
+            this.playDroneDescent();
+        } else if (charType === 'kartal') {
+            this.playEagleDescent();
+        } else if (charType === 'roket') {
+            this.playRocketDescent();
+        } else if (charType === 'fuze') {
+            this.playMissileDescent();
+        }
+    }
+
+    playCharacterCrash(charType = 'drone') {
+        if (charType === 'drone') {
+            this.playDroneCrash();
+        } else if (charType === 'kartal') {
+            this.playEagleCrash();
+        } else if (charType === 'roket') {
+            this.playRocketCrash();
+        } else if (charType === 'fuze') {
+            this.playMissileCrash();
+        }
+    }
+
     // =========================================================================
-    // 🔔 5. SKOR, HALKA, ÇARPIŞMA, GAME OVER & BUTON SESLERİ
+    // 🔔 5. SKOR, HALKA, GAME OVER & BUTON SESLERİ
     // =========================================================================
     playScore() {
         if (this.muted || this.sfxMuted) return;
@@ -460,28 +638,6 @@ class SoundSystem {
             osc.start(time);
             osc.stop(time + 0.22);
         });
-    }
-
-    playHit() {
-        if (this.muted || this.sfxMuted) return;
-        this.init();
-        if (!this.ctx) return;
-
-        const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(160, now);
-        osc.frequency.exponentialRampToValueAtTime(30, now + 0.25);
-
-        gain.gain.setValueAtTime(0.45 * this.sfxVolume, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.25);
     }
 
     playGameOver() {
