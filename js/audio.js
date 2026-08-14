@@ -258,15 +258,15 @@ class SoundSystem {
     }
 
     // =========================================================================
-    // 🛸 1. DRONE: 1.5 Saniye Süren Güçlü & Net Motor Vızıltısı
+    // 🛸 1. DRONE: 1.0 Saniye Süren Motor Vızıltısı
     // =========================================================================
     playDroneSound() {
         this.playSnippet('drone', {
             offset: 0.40,
-            duration: 1.5,
-            fadeTime: 0.35,
+            duration: 1.0,
+            fadeTime: 0.20,
             playbackRate: 1.0,
-            volumeScale: 1.8 // Drone volümü dengelendi
+            volumeScale: 1.8
         }, () => {
             if (!this.ctx) return;
             const now = this.ctx.currentTime;
@@ -286,15 +286,15 @@ class SoundSystem {
     }
 
     // =========================================================================
-    // 🦅 2. KARTAL: En Yüksek Volümlü Çığlıktan Başlayan (1.65s) 1.7 Saniyelik Ses
+    // 🦅 2. KARTAL: En Yüksek Çığlıktan Başlayan (1.65s) 1.0 Saniyelik Ses
     // =========================================================================
     playEagleSound() {
         this.playSnippet('kartal', {
-            offset: 1.65, // En yüksek kartal çığlığının başladığı nokta
-            duration: 1.7, // 1.7 saniye boyunca zengin ve uzun çığlık
-            fadeTime: 0.45,
+            offset: 1.65, // En yüksek çığlığın başladığı nokta
+            duration: 1.0, // Tam 1.0 saniye
+            fadeTime: 0.25,
             playbackRate: 1.0,
-            volumeScale: 1.6 // Yüksek volümlü
+            volumeScale: 1.6
         }, () => {
             if (!this.ctx) return;
             const now = this.ctx.currentTime;
@@ -338,13 +338,13 @@ class SoundSystem {
     }
 
     // =========================================================================
-    // 🚀 3. ROKET: 1.6 Saniye Süren Güçlü İtiş Patlaması
+    // 🚀 3. ROKET: 1.0 Saniye Süren İtiş Patlaması
     // =========================================================================
     playRocketSound() {
         this.playSnippet('roket', {
             offset: 0.85,
-            duration: 1.6,
-            fadeTime: 0.40,
+            duration: 1.0,
+            fadeTime: 0.22,
             playbackRate: 1.0,
             volumeScale: 1.3
         }, () => {
@@ -370,13 +370,13 @@ class SoundSystem {
     }
 
     // =========================================================================
-    // 🎯 4. FÜZE: 1.4 Saniye Süren Sesüstü Jet İtişi
+    // 🎯 4. FÜZE: 1.0 Saniye Süren Sesüstü Jet İtişi
     // =========================================================================
     playMissileSound() {
         this.playSnippet('fuze', {
             offset: 0.35,
-            duration: 1.4,
-            fadeTime: 0.35,
+            duration: 1.0,
+            fadeTime: 0.20,
             playbackRate: 1.0,
             volumeScale: 1.2
         }, () => {
