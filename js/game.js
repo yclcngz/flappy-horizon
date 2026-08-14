@@ -140,6 +140,8 @@ class GameEngine {
         document.getElementById('gameOverMenu').classList.add('hidden');
         document.getElementById('inGameHUD').classList.remove('hidden');
         this.updateHUD();
+
+        window.soundSystem.startBGM();
     }
 
     gameOver() {
@@ -242,11 +244,22 @@ class GameEngine {
             this.player.angle = Math.min(0.7, this.player.angle + 0.025);
         }
 
-        // Uçarken arkada hafif itki izi bırakma
+        // Uçarken arkada hafif itki izi bırakma & Karakter özel sesleri
+        const charType = window.characterManager.selectedCharacter;
+        const charCfg = window.characterManager.getConfig();
+
         if (Math.random() > 0.4) {
-            const charType = window.characterManager.selectedCharacter;
-            const charCfg = window.characterManager.getConfig();
             window.particleEngine.emitTrail(this.player.x, this.player.y, charType, charCfg);
+        }
+
+        // Kartal için periyodik doğal çığlık sesi (Ortalama her 10-15 saniyede bir)
+        if (charType === 'kartal') {
+            if (!this.eagleCryCooldown) this.eagleCryCooldown = Math.floor(Math.random() * 400 + 500);
+            this.eagleCryCooldown--;
+            if (this.eagleCryCooldown <= 0) {
+                window.soundSystem.playEagleScreech();
+                this.eagleCryCooldown = Math.floor(Math.random() * 500 + 600); // Yeni rastgele aralık
+            }
         }
 
         // Zemin ve Tavan Çarpışma Kontrolü

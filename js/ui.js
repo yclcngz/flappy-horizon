@@ -92,7 +92,11 @@ class UIManager {
             btn.addEventListener('click', () => {
                 const isMuted = window.soundSystem.toggleMute();
                 soundBtns.forEach(b => {
-                    b.innerHTML = isMuted ? '🔇' : '🔊';
+                    if (b.classList.contains('sound-pill-btn')) {
+                        b.innerHTML = isMuted ? '🔇 Ses Kapalı' : '🔊 Ses Açık';
+                    } else {
+                        b.innerHTML = isMuted ? '🔇' : '🔊';
+                    }
                 });
             });
         });
