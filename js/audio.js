@@ -1,7 +1,8 @@
 /**
- * Flappy Horizon - Senkronize & Kırpılmış Web Audio Motoru
- * Her tuşa basışta ve dokunuşta kanat çırpma / motor itişiyle tam senkronize çalışan,
- * ~0.4s - 0.7s aralığında kırpılmış ve yumuşak sönümlenen (fade-out) özel ses motoru.
+ * Flappy Horizon - Akıllı Pik Analizli & Uzatılmış Web Audio Motoru
+ * - Sesler artık 1.4s - 1.8s boyunca doğal ve tok şekilde sürer.
+ * - Kartal ve diğer sesler için otomatik pik tespiti (en yüksek sesli yerden başlatma).
+ * - Yumuşak sönümlenme (fade-out) ve zengin ses seviyesi.
  */
 
 class SoundSystem {
@@ -11,7 +12,7 @@ class SoundSystem {
         this.bgmMuted = false;
         this.sfxMuted = false;
         this.bgmVolume = 0.16; // Arka plan müzik seviyesi
-        this.sfxVolume = 0.70; // Efekt ses seviyesi
+        this.sfxVolume = 0.80; // Efekt ses seviyesi (yükseltildi)
 
         // BGM Durumu
         this.isBgmPlaying = false;
@@ -35,6 +36,14 @@ class SoundSystem {
             kartal: null,
             roket: null,
             fuze: null
+        };
+
+        // En yüksek sesli (Peak) başlangıç noktaları (Saniye cinsinden)
+        this.peakOffsets = {
+            drone: 0.0,
+            kartal: 0.0,
+            roket: 0.0,
+            fuze: 0.0
         };
 
         // HTML5 Audio Yedekleri
@@ -105,10 +114,45 @@ class SoundSystem {
             const arrayBuffer = await response.arrayBuffer();
             const decodedBuffer = await this.ctx.decodeAudioData(arrayBuffer);
             this.audioBuffers[key] = decodedBuffer;
-            console.log(`✓ Özel ses yüklendi & senkronize edildi: ${key} (${url})`);
+
+            // En yüksek volümlü (Pik) noktayı otomatik analiz et
+            const peakTime = this.findPeakOffset(decodedBuffer);
+            this.peakOffsets[key] = peakTime;
+
+            console.log(`✓ Ses yüklendi: ${key} | Süre: ${decodedBuffer.duration.toFixed(2)}s | Pik Ofseti: ${peakTime.toFixed(2)}s`);
         } catch (e) {
-            console.info(`Özel ses (${key}) Web Audio ile çözülemedi, dinamik mod devrede:`, e.message);
+            console.info(`Özel ses (${key}) Web Audio ile çözülemedi, HTML5/Synth devrede:`, e.message);
         }
+    }
+
+    // Ses dalgasındaki en yüksek enerjili / volümlü yeri bulan akıllı algoritma
+    findPeakOffset(buffer, windowSec = 0.25) {
+        if (!buffer) return 0;
+        const data = buffer.getChannelData(0);
+        const sampleRate = buffer.sampleRate;
+        const windowSamples = Math.floor(sampleRate * windowSec);
+        const stepSamples = Math.floor(sampleRate * 0.05); // 50ms kaydırmalı pencere
+
+        let maxRms = 0;
+        let peakSample = 0;
+
+        for (let i = 0; i < data.length - windowSamples; i += stepSamples) {
+            let sum = 0;
+            for (let j = 0; j < windowSamples; j++) {
+                const val = data[i + j];
+                sum += val * val;
+            }
+            const rms = Math.sqrt(sum / windowSamples);
+            if (rms > maxRms) {
+                maxRms = rms;
+                peakSample = i;
+            }
+        }
+
+        // Vuruşun başlangıcını kaçırmamak için pikin 60ms öncesinden başlat
+        const attackLeadSec = 0.06;
+        const peakTimeSec = Math.max(0, (peakSample / sampleRate) - attackLeadSec);
+        return peakTimeSec;
     }
 
     createNoiseBuffer() {
@@ -142,19 +186,20 @@ class SoundSystem {
     }
 
     // =========================================================================
-    // ✂️ SENKRONİZE & KIRPILMIŞ SES OYNATICI (Snippet with Envelope)
+    // 🔊 DOĞAL & UZATILMIŞ SES OYNATICI (1.4s - 1.8s Süreli & Fade-Out Zarfı)
     // =========================================================================
     playSnippet(key, options = {}, synthFallbackFn = null) {
         if (this.muted || this.sfxMuted) return;
         this.init();
 
-        const duration = options.duration || 0.45; // Varsayılan 0.45 saniye kırpılmış uzunluk
-        const offset = options.offset || 0.0;
-        const fadeTime = options.fadeTime || 0.12;
+        const duration = options.duration || 1.5; // ~1.5 saniye doğal süre
+        const defaultOffset = this.peakOffsets[key] || 0.0;
+        const offset = options.offset !== undefined ? options.offset : defaultOffset;
+        const fadeTime = options.fadeTime || 0.35;
         const playbackRate = options.playbackRate || 1.0;
         const volumeScale = options.volumeScale || 1.0;
 
-        // 1. Web Audio API Buffer (Hassas milisaniye kırpma ve yumuşak sönümleme)
+        // 1. Web Audio API Buffer (En temiz ve gecikmesiz yöntem)
         if (this.ctx && this.audioBuffers[key]) {
             try {
                 const now = this.ctx.currentTime;
@@ -165,7 +210,7 @@ class SoundSystem {
                 const gainNode = this.ctx.createGain();
                 const targetVol = this.sfxVolume * volumeScale;
 
-                // Anında başla, süre sonunda yumuşakça sönümlen (Fade out)
+                // Başlangıç sesi ve doğal bitiş sönümlemesi
                 gainNode.gain.setValueAtTime(targetVol, now);
                 gainNode.gain.setValueAtTime(targetVol, now + Math.max(0, duration - fadeTime));
                 gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
@@ -173,7 +218,11 @@ class SoundSystem {
                 source.connect(gainNode);
                 gainNode.connect(this.ctx.destination);
 
-                source.start(now, offset, duration);
+                // Dosya boyutunu aşmayacak şekilde güvenli başlangıç
+                const maxOffset = Math.max(0, this.audioBuffers[key].duration - 0.2);
+                const safeOffset = Math.min(offset, maxOffset);
+
+                source.start(now, safeOffset, duration);
                 return;
             } catch (err) {
                 console.warn('Buffer oynatma hatası:', err);
@@ -184,12 +233,11 @@ class SoundSystem {
         if (this.audioElements[key]) {
             try {
                 const clone = this.audioElements[key].cloneNode();
-                clone.volume = this.sfxVolume * volumeScale;
+                clone.volume = Math.min(1.0, this.sfxVolume * volumeScale);
                 clone.currentTime = offset;
                 const playPromise = clone.play();
                 if (playPromise !== undefined) {
                     playPromise.then(() => {
-                        // Belirlenen süre sonunda durdur
                         setTimeout(() => {
                             try { clone.pause(); clone.remove(); } catch (e) {}
                         }, duration * 1000);
@@ -199,7 +247,7 @@ class SoundSystem {
                 }
                 return;
             } catch (err) {
-                console.warn('HTML5 Audio oynatma hatası:', err);
+                console.warn('HTML5 Audio hatası:', err);
             }
         }
 
@@ -210,15 +258,15 @@ class SoundSystem {
     }
 
     // =========================================================================
-    // 🛸 1. DRONE: Hızlı Pervane İtişi (~0.35s Kırpılmış)
+    // 🛸 1. DRONE: 1.5 Saniye Süren Güçlü & Net Motor Vızıltısı
     // =========================================================================
     playDroneSound() {
         this.playSnippet('drone', {
-            duration: 0.35,
-            offset: 0.0,
-            fadeTime: 0.08,
-            playbackRate: 1.15,
-            volumeScale: 1.0
+            offset: 0.40,
+            duration: 1.5,
+            fadeTime: 0.35,
+            playbackRate: 1.0,
+            volumeScale: 1.8 // Drone volümü dengelendi
         }, () => {
             if (!this.ctx) return;
             const now = this.ctx.currentTime;
@@ -226,73 +274,42 @@ class SoundSystem {
             const gain = this.ctx.createGain();
             osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(320, now);
-            osc.frequency.exponentialRampToValueAtTime(540, now + 0.08);
-            osc.frequency.exponentialRampToValueAtTime(280, now + 0.18);
-            gain.gain.setValueAtTime(0.25 * this.sfxVolume, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+            osc.frequency.exponentialRampToValueAtTime(480, now + 0.15);
+            osc.frequency.exponentialRampToValueAtTime(260, now + 0.6);
+            gain.gain.setValueAtTime(0.3 * this.sfxVolume, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
             osc.connect(gain);
             gain.connect(this.ctx.destination);
             osc.start(now);
-            osc.stop(now + 0.18);
+            osc.stop(now + 0.6);
         });
     }
 
     // =========================================================================
-    // 🦅 2. KARTAL: Kanat Çırpma & Çığlık (~0.42s Kırpılmış Zıplama)
+    // 🦅 2. KARTAL: En Yüksek Volümlü Çığlıktan Başlayan (1.65s) 1.7 Saniyelik Ses
     // =========================================================================
     playEagleSound() {
         this.playSnippet('kartal', {
-            duration: 0.42,
-            offset: 0.0,
-            fadeTime: 0.10,
-            playbackRate: 1.12,
-            volumeScale: 1.0
-        }, () => {
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
-            if (this.noiseBuffer) {
-                const noise = this.ctx.createBufferSource();
-                noise.buffer = this.noiseBuffer;
-                const filter = this.ctx.createBiquadFilter();
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(300, now);
-                filter.frequency.exponentialRampToValueAtTime(700, now + 0.06);
-                filter.frequency.exponentialRampToValueAtTime(120, now + 0.22);
-                const gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(0.45 * this.sfxVolume, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-                noise.connect(filter);
-                filter.connect(gain);
-                gain.connect(this.ctx.destination);
-                noise.start(now);
-                noise.stop(now + 0.22);
-            }
-        });
-    }
-
-    // 🦅 Havada Süzülürken Uzun Kartal Çığlığı (~1.1s)
-    playEagleScreech() {
-        this.playSnippet('kartal', {
-            duration: 1.1,
-            offset: 0.0,
-            fadeTime: 0.25,
+            offset: 1.65, // En yüksek kartal çığlığının başladığı nokta
+            duration: 1.7, // 1.7 saniye boyunca zengin ve uzun çığlık
+            fadeTime: 0.45,
             playbackRate: 1.0,
-            volumeScale: 1.1
+            volumeScale: 1.6 // Yüksek volümlü
         }, () => {
             if (!this.ctx) return;
             const now = this.ctx.currentTime;
-            const duration = 0.85;
+            const duration = 0.9;
             const modOsc = this.ctx.createOscillator();
             const modGain = this.ctx.createGain();
             modOsc.type = 'sine';
-            modOsc.frequency.setValueAtTime(32, now);
-            modGain.gain.setValueAtTime(160, now);
+            modOsc.frequency.setValueAtTime(30, now);
+            modGain.gain.setValueAtTime(180, now);
 
             const carrierOsc = this.ctx.createOscillator();
             carrierOsc.type = 'sawtooth';
-            carrierOsc.frequency.setValueAtTime(2600, now);
-            carrierOsc.frequency.linearRampToValueAtTime(3100, now + 0.12);
-            carrierOsc.frequency.exponentialRampToValueAtTime(1650, now + duration);
+            carrierOsc.frequency.setValueAtTime(2700, now);
+            carrierOsc.frequency.linearRampToValueAtTime(3200, now + 0.12);
+            carrierOsc.frequency.exponentialRampToValueAtTime(1600, now + duration);
 
             modOsc.connect(carrierOsc.frequency);
             const filter = this.ctx.createBiquadFilter();
@@ -303,7 +320,7 @@ class SoundSystem {
 
             const gain = this.ctx.createGain();
             gain.gain.setValueAtTime(0.001, now);
-            gain.gain.linearRampToValueAtTime(0.35 * this.sfxVolume, now + 0.08);
+            gain.gain.linearRampToValueAtTime(0.45 * this.sfxVolume, now + 0.08);
             gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
             carrierOsc.connect(filter);
@@ -316,16 +333,20 @@ class SoundSystem {
         });
     }
 
+    playEagleScreech() {
+        this.playEagleSound();
+    }
+
     // =========================================================================
-    // 🚀 3. ROKET: Tok İtiş Patlaması (~0.48s Kırpılmış)
+    // 🚀 3. ROKET: 1.6 Saniye Süren Güçlü İtiş Patlaması
     // =========================================================================
     playRocketSound() {
         this.playSnippet('roket', {
-            duration: 0.48,
-            offset: 0.0,
-            fadeTime: 0.12,
-            playbackRate: 1.08,
-            volumeScale: 0.95
+            offset: 0.85,
+            duration: 1.6,
+            fadeTime: 0.40,
+            playbackRate: 1.0,
+            volumeScale: 1.3
         }, () => {
             if (!this.ctx) return;
             const now = this.ctx.currentTime;
@@ -335,29 +356,29 @@ class SoundSystem {
                 const filter = this.ctx.createBiquadFilter();
                 filter.type = 'lowpass';
                 filter.frequency.setValueAtTime(600, now);
-                filter.frequency.exponentialRampToValueAtTime(180, now + 0.22);
+                filter.frequency.exponentialRampToValueAtTime(150, now + 0.7);
                 const gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(0.5 * this.sfxVolume, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                gain.gain.setValueAtTime(0.55 * this.sfxVolume, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
                 noise.connect(filter);
                 filter.connect(gain);
                 gain.connect(this.ctx.destination);
                 noise.start(now);
-                noise.stop(now + 0.22);
+                noise.stop(now + 0.7);
             }
         });
     }
 
     // =========================================================================
-    // 🎯 4. FÜZE: Keskin Sesüstü Ateşleme (~0.38s Kırpılmış)
+    // 🎯 4. FÜZE: 1.4 Saniye Süren Sesüstü Jet İtişi
     // =========================================================================
     playMissileSound() {
         this.playSnippet('fuze', {
-            duration: 0.38,
-            offset: 0.0,
-            fadeTime: 0.09,
-            playbackRate: 1.12,
-            volumeScale: 1.0
+            offset: 0.35,
+            duration: 1.4,
+            fadeTime: 0.35,
+            playbackRate: 1.0,
+            volumeScale: 1.2
         }, () => {
             if (!this.ctx) return;
             const now = this.ctx.currentTime;
@@ -367,21 +388,21 @@ class SoundSystem {
                 const filter = this.ctx.createBiquadFilter();
                 filter.type = 'bandpass';
                 filter.frequency.setValueAtTime(1200, now);
-                filter.frequency.exponentialRampToValueAtTime(350, now + 0.18);
-                filter.Q.setValueAtTime(4.0, now);
+                filter.frequency.exponentialRampToValueAtTime(300, now + 0.6);
+                filter.Q.setValueAtTime(3.5, now);
                 const gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(0.45 * this.sfxVolume, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+                gain.gain.setValueAtTime(0.5 * this.sfxVolume, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
                 noise.connect(filter);
                 filter.connect(gain);
                 gain.connect(this.ctx.destination);
                 noise.start(now);
-                noise.stop(now + 0.18);
+                noise.stop(now + 0.6);
             }
         });
     }
 
-    // Karakter seçimine göre anlık zıplama
+    // Karakter seçimine göre zıplama
     playJump(charType = 'drone') {
         if (charType === 'drone') {
             this.playDroneSound();
@@ -409,7 +430,7 @@ class SoundSystem {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(880, now);
         osc.frequency.setValueAtTime(1174.66, now + 0.06);
-        gain.gain.setValueAtTime(0.22 * this.sfxVolume, now);
+        gain.gain.setValueAtTime(0.25 * this.sfxVolume, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
 
         osc.connect(gain);
@@ -431,7 +452,7 @@ class SoundSystem {
 
             osc.type = 'sine';
             osc.frequency.setValueAtTime(freq, time);
-            gain.gain.setValueAtTime(0.18 * this.sfxVolume, time);
+            gain.gain.setValueAtTime(0.20 * this.sfxVolume, time);
             gain.gain.exponentialRampToValueAtTime(0.001, time + 0.22);
 
             osc.connect(gain);
@@ -454,7 +475,7 @@ class SoundSystem {
         osc.frequency.setValueAtTime(160, now);
         osc.frequency.exponentialRampToValueAtTime(30, now + 0.25);
 
-        gain.gain.setValueAtTime(0.4 * this.sfxVolume, now);
+        gain.gain.setValueAtTime(0.45 * this.sfxVolume, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
 
         osc.connect(gain);
@@ -476,7 +497,7 @@ class SoundSystem {
 
             osc.type = 'triangle';
             osc.frequency.setValueAtTime(freq, time);
-            gain.gain.setValueAtTime(0.25 * this.sfxVolume, time);
+            gain.gain.setValueAtTime(0.30 * this.sfxVolume, time);
             gain.gain.exponentialRampToValueAtTime(0.001, time + 0.22);
 
             osc.connect(gain);
@@ -499,7 +520,7 @@ class SoundSystem {
         osc.frequency.setValueAtTime(650, now);
         osc.frequency.exponentialRampToValueAtTime(950, now + 0.04);
 
-        gain.gain.setValueAtTime(0.1 * this.sfxVolume, now);
+        gain.gain.setValueAtTime(0.12 * this.sfxVolume, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
 
         osc.connect(gain);
