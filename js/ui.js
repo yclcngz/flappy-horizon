@@ -18,120 +18,115 @@ class UIManager {
     }
 
     bindMenuButtons() {
-        // Oyna / Başla Butonları
-        const startBtn = document.getElementById('btnStartGame');
-        if (startBtn) {
-            startBtn.addEventListener('click', () => {
-                window.soundSystem.playClick();
-                window.gameEngine.startPlay();
-            });
-        }
+        // Yardımcı güvenli buton bağlama fonksiyonu
+        const bindButton = (id, handler) => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
 
-        const restartBtn = document.getElementById('btnRestartGame');
-        if (restartBtn) {
-            restartBtn.addEventListener('click', () => {
-                window.soundSystem.playClick();
-                window.gameEngine.startPlay();
-            });
-        }
+            const execute = (e) => {
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                try {
+                    if (window.soundSystem) window.soundSystem.playClick();
+                } catch (err) {}
+                try {
+                    handler();
+                } catch (err) {
+                    console.error('Buton çalıştırma hatası (' + id + '):', err);
+                }
+            };
 
-        const menuBtn = document.getElementById('btnBackToMenu');
-        if (menuBtn) {
-            menuBtn.addEventListener('click', () => {
-                window.soundSystem.playClick();
+            btn.addEventListener('click', execute);
+        };
+
+        // 1. HEMEN BAŞLA
+        bindButton('btnStartGame', () => {
+            if (window.gameEngine) {
+                window.gameEngine.startPlay();
+            }
+        });
+
+        // 2. TEKRAR UÇ
+        bindButton('btnRestartGame', () => {
+            if (window.gameEngine) {
+                window.gameEngine.startPlay();
+            }
+        });
+
+        // 3. ANA MENÜYE DÖN
+        bindButton('btnBackToMenu', () => {
+            if (window.gameEngine) {
                 window.gameEngine.state = 'MENU';
-                document.getElementById('gameOverMenu').classList.add('hidden');
-                document.getElementById('mainMenu').classList.remove('hidden');
-            });
-        }
+            }
+            const goMenu = document.getElementById('gameOverMenu');
+            const mainMenu = document.getElementById('mainMenu');
+            if (goMenu) goMenu.classList.add('hidden');
+            if (mainMenu) mainMenu.classList.remove('hidden');
+        });
 
-        const goLbBtn = document.getElementById('btnGameOverLeaderboard');
-        if (goLbBtn) {
-            goLbBtn.addEventListener('click', () => {
-                window.soundSystem.playClick();
-                if (window.leaderboardManager) {
-                    window.leaderboardManager.showLeaderboard();
-                }
-            });
-        }
+        // 4. GAME OVER - LİDERLİK TABLOSU
+        bindButton('btnGameOverLeaderboard', () => {
+            if (window.leaderboardManager) {
+                window.leaderboardManager.showLeaderboard();
+            }
+        });
 
-        // Atölye / Garaj Butonları
-        const garageBtn = document.getElementById('btnOpenGarage');
-        const garageModal = document.getElementById('garageModal');
-        const closeGarageBtn = document.getElementById('btnCloseGarage');
+        // 5. KARAKTER ATÖLYESİ AÇ
+        bindButton('btnOpenGarage', () => {
+            this.updateGarageControls();
+            const modal = document.getElementById('garageModal');
+            if (modal) modal.classList.remove('hidden');
+        });
 
-        if (garageBtn) {
-            garageBtn.addEventListener('click', () => {
-                window.soundSystem.playClick();
-                this.updateGarageControls();
-                garageModal.classList.remove('hidden');
-            });
-        }
-
-        if (closeGarageBtn) {
-            closeGarageBtn.addEventListener('click', () => {
-                window.soundSystem.playClick();
+        // 6. KARAKTER ATÖLYESİ KAPAT
+        bindButton('btnCloseGarage', () => {
+            if (window.characterManager) {
                 window.characterManager.saveConfigs();
-                garageModal.classList.add('hidden');
-            });
-        }
+            }
+            const modal = document.getElementById('garageModal');
+            if (modal) modal.classList.add('hidden');
+        });
 
-        // Seviye Seçim Butonu & Modalı
-        const levelBtn = document.getElementById('btnOpenLevels');
-        const levelModal = document.getElementById('levelModal');
-        const closeLevelBtn = document.getElementById('btnCloseLevels');
+        // 7. SEVİYE VE DÜNYALAR AÇ
+        bindButton('btnOpenLevels', () => {
+            this.renderLevelGrid();
+            const modal = document.getElementById('levelModal');
+            if (modal) modal.classList.remove('hidden');
+        });
 
-        if (levelBtn) {
-            levelBtn.addEventListener('click', () => {
-                window.soundSystem.playClick();
-                this.renderLevelGrid();
-                levelModal.classList.remove('hidden');
-            });
-        }
+        // 8. SEVİYE VE DÜNYALAR KAPAT
+        bindButton('btnCloseLevels', () => {
+            const modal = document.getElementById('levelModal');
+            if (modal) modal.classList.add('hidden');
+        });
 
-        if (closeLevelBtn) {
-            closeLevelBtn.addEventListener('click', () => {
-                window.soundSystem.playClick();
-                levelModal.classList.add('hidden');
-            });
-        }
+        // 9. LİDERLİK TABLOSU AÇ (ANA MENÜ)
+        bindButton('btnOpenLeaderboard', () => {
+            if (window.leaderboardManager) {
+                window.leaderboardManager.showLeaderboard();
+            }
+        });
 
-        // Liderlik Tablosu Butonları
-        const lbBtn = document.getElementById('btnOpenLeaderboard');
-        const lbModal = document.getElementById('leaderboardModal');
-        const closeLbBtn = document.getElementById('btnCloseLeaderboard');
+        // 10. LİDERLİK TABLOSU KAPAT
+        bindButton('btnCloseLeaderboard', () => {
+            const modal = document.getElementById('leaderboardModal');
+            if (modal) modal.classList.add('hidden');
+            if (window.gameEngine && window.gameEngine.state === 'GAMEOVER' && !window.gameEngine.isVictory) {
+                window.gameEngine.showGameOverUI();
+            }
+        });
 
-        if (lbBtn) {
-            lbBtn.addEventListener('click', () => {
-                window.soundSystem.playClick();
-                if (window.leaderboardManager) {
-                    window.leaderboardManager.showLeaderboard();
-                }
-            });
-        }
+        // 11. İSİM KAYDET
+        bindButton('btnSaveName', () => {
+            if (window.leaderboardManager) {
+                window.leaderboardManager.submitName();
+            }
+        });
 
-        if (closeLbBtn) {
-            closeLbBtn.addEventListener('click', () => {
-                window.soundSystem.playClick();
-                lbModal.classList.add('hidden');
-                // Eğer oyun bitmiş durumdaysa ve menüde değilsek GameOver UI göster
-                if (window.gameEngine && window.gameEngine.state === 'GAMEOVER' && !window.gameEngine.isVictory) {
-                    window.gameEngine.showGameOverUI();
-                }
-            });
-        }
-
-        // İsim Kaydet Butonu
-        const saveNameBtn = document.getElementById('btnSaveName');
+        // İsim inputunda Enter tuşu
         const nameInput = document.getElementById('playerNameInput');
-        if (saveNameBtn) {
-            saveNameBtn.addEventListener('click', () => {
-                window.soundSystem.playClick();
-                if (window.leaderboardManager) {
-                    window.leaderboardManager.submitName();
-                }
-            });
-        }
         if (nameInput) {
             nameInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
@@ -143,48 +138,41 @@ class UIManager {
             });
         }
 
-        // Zafer Ekranı Menü Butonu
-        const victoryMenuBtn = document.getElementById('btnVictoryMenu');
-        if (victoryMenuBtn) {
-            victoryMenuBtn.addEventListener('click', () => {
-                window.soundSystem.playClick();
-                document.getElementById('victoryScreen').classList.add('hidden');
-                window.gameEngine.state = 'MENU';
-                document.getElementById('mainMenu').classList.remove('hidden');
-            });
-        }
+        // 12. ZAFER EKRANI - ANA MENÜ
+        bindButton('btnVictoryMenu', () => {
+            const victoryScreen = document.getElementById('victoryScreen');
+            const mainMenu = document.getElementById('mainMenu');
+            if (victoryScreen) victoryScreen.classList.add('hidden');
+            if (window.gameEngine) window.gameEngine.state = 'MENU';
+            if (mainMenu) mainMenu.classList.remove('hidden');
+        });
 
-        // Ses Aç/Kapa Butonları
+        // 13. SES AÇ/KAPA
         const soundBtns = document.querySelectorAll('.btn-sound-toggle');
         soundBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const isMuted = window.soundSystem.toggleMute();
-                soundBtns.forEach(b => {
-                    if (b.classList.contains('sound-pill-btn')) {
-                        b.innerHTML = isMuted ? '🔇 Ses Kapalı' : '🔊 Ses Açık';
-                    } else {
-                        b.innerHTML = isMuted ? '🔇' : '🔊';
-                    }
-                });
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (window.soundSystem) {
+                    const isMuted = window.soundSystem.toggleMute();
+                    soundBtns.forEach(b => {
+                        if (b.classList.contains('sound-pill-btn')) {
+                            b.innerHTML = isMuted ? '🔇 Ses Kapalı' : '🔊 Ses Açık';
+                        } else {
+                            b.innerHTML = isMuted ? '🔇' : '🔊';
+                        }
+                    });
+                }
             });
         });
 
-        // Duraklatma Butonu
-        const pauseBtn = document.getElementById('btnPause');
-        if (pauseBtn) {
-            pauseBtn.addEventListener('click', () => {
-                window.soundSystem.playClick();
-                window.gameEngine.togglePause();
-            });
-        }
+        // 14. DURAKLATMA
+        bindButton('btnPause', () => {
+            if (window.gameEngine) window.gameEngine.togglePause();
+        });
 
-        const resumeBtn = document.getElementById('btnResume');
-        if (resumeBtn) {
-            resumeBtn.addEventListener('click', () => {
-                window.soundSystem.playClick();
-                window.gameEngine.togglePause();
-            });
-        }
+        bindButton('btnResume', () => {
+            if (window.gameEngine) window.gameEngine.togglePause();
+        });
     }
 
     // Karakter Özelleştirme Kontrolleri
