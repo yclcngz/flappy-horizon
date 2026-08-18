@@ -384,73 +384,99 @@ class UIManager {
 }
 
 /**
- * Liderlik Tablosu (Top 10 Leaderboard) Yöneticisi
+ * Liderlik Tablosu (Top 10 Leaderboard) Yöneticisi - Firebase Destekli
  */
 class LeaderboardManager {
     constructor() {
-        this.storageKey = 'flappy_horizon_user_leaderboard_v2';
         this.pendingScore = 0;
         this.pendingIsVictory = false;
-        this.clearOldMockData();
-        this.scores = this.loadScores();
-    }
+        this.scores = [];
+        this.isLoading = false;
 
-    clearOldMockData() {
+        // Eski yerel verileri temizle (opsiyonel)
         try {
-            // Eski mock / varsayılan verileri temizle
+            localStorage.removeItem('flappy_horizon_user_leaderboard_v2');
             localStorage.removeItem('flappy_horizon_leaderboard');
-            localStorage.removeItem('flappy_horizon_leaderboard_v1');
         } catch (e) {}
+
+        // Firebase Başlatma
+        if (!firebase.apps.length) {
+            const firebaseConfig = {
+              apiKey: "AIzaSyASTQs8uUsVdhSGcirXM1KJDrD3WO2I7HI",
+              authDomain: "flappyhorizon-73489.firebaseapp.com",
+              databaseURL: "https://flappyhorizon-73489-default-rtdb.europe-west1.firebasedatabase.app",
+              projectId: "flappyhorizon-73489",
+              storageBucket: "flappyhorizon-73489.firebasestorage.app",
+              messagingSenderId: "195684373944",
+              appId: "1:195684373944:web:25a964a98af50810c42b4d",
+              measurementId: "G-W6D65S6ZFC"
+            };
+            firebase.initializeApp(firebaseConfig);
+        }
+        
+        // Liderlik tablosu referansı
+        this.db = firebase.database().ref('global_leaderboard_v1');
+        
+        // Oyun açılışında sessizce bir kere yükle
+        this.loadScores();
     }
 
-    loadScores() {
-        try {
-            const raw = localStorage.getItem(this.storageKey);
-            if (raw) {
-                const parsed = JSON.parse(raw);
-                if (Array.isArray(parsed)) {
-                    return parsed;
+    loadScores(callback) {
+        this.isLoading = true;
+        
+        // Arayüz açıksa "Yükleniyor" durumunu göster
+        const container = document.getElementById('leaderboardContent');
+        const modal = document.getElementById('leaderboardModal');
+        if (container && modal && !modal.classList.contains('hidden')) {
+            container.innerHTML = this.buildTableHTML();
+        }
+
+        // Firebase'den en yüksek 10 skoru çek (Sondan başa, skor sırasına göre)
+        this.db.orderByChild('score').limitToLast(10).once('value', (snapshot) => {
+            this.isLoading = false;
+            const data = [];
+            snapshot.forEach((childSnapshot) => {
+                data.push(childSnapshot.val());
+            });
+            // orderByChild küçükten büyüğe sıralar, ters çevirip büyükten küçüğe alıyoruz
+            this.scores = data.reverse();
+            
+            if (callback) {
+                callback();
+            } else {
+                // Sadece güncelleyip bırak (Arayüz açıksa günceller)
+                if (container && modal && !modal.classList.contains('hidden')) {
+                    container.innerHTML = this.buildTableHTML();
                 }
             }
-        } catch (e) {
-            console.warn('Liderlik tablosu okunamadı:', e);
-        }
-        // Başlangıçta tamamen boş liste — sadece gerçek kullanıcı skorları yer alır
-        return [];
-    }
-
-    saveScores() {
-        try {
-            localStorage.setItem(this.storageKey, JSON.stringify(this.scores));
-        } catch (e) {
-            console.warn('Liderlik tablosu kaydedilemedi:', e);
-        }
-    }
-
-    isTop10(score) {
-        if (score <= 0) return false;
-        if (this.scores.length < 10) return true;
-        return score > this.scores[this.scores.length - 1].score;
+        }, (error) => {
+            console.error("Firebase'den veriler okunamadı:", error);
+            this.isLoading = false;
+            if (callback) callback();
+        });
     }
 
     addScore(name, score, charType, isVictory = false) {
         const cleanName = (name && name.trim().length > 0) ? name.trim().substring(0, 12) : 'Pilot';
         const numScore = parseInt(score, 10) || 0;
 
-        this.scores.push({
+        const newEntry = {
             name: cleanName,
             score: numScore,
             char: charType || 'drone',
             isVictory: !!isVictory,
-            date: new Date().toLocaleDateString('tr-TR')
+            date: new Date().toLocaleDateString('tr-TR'),
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        };
+
+        // Firebase'e yeni kayıt olarak it (push)
+        this.db.push(newEntry).then(() => {
+            // Eklendikten sonra listeyi tekrar çek ve göster
+            this.showLeaderboard();
+        }).catch(err => {
+            console.error("Firebase skor kaydetme hatası:", err);
+            this.showLeaderboard();
         });
-
-        // Skorlara göre büyükten küçüğe sırala
-        this.scores.sort((a, b) => b.score - a.score);
-
-        // Yalnızca Top 10 tut
-        this.scores = this.scores.slice(0, 10);
-        this.saveScores();
     }
 
     showNameInput(score, isVictory = false) {
@@ -476,28 +502,45 @@ class LeaderboardManager {
 
         const score = this.pendingScore > 0 ? this.pendingScore : (window.gameEngine ? window.gameEngine.score : 0);
         const charType = window.characterManager ? window.characterManager.selectedCharacter : 'drone';
-        this.addScore(name, score, charType, this.pendingIsVictory);
-
+        
         if (modal) modal.classList.add('hidden');
+        
+        // Loading state'i başlat ve modalı aç
+        this.isLoading = true;
+        const lbModal = document.getElementById('leaderboardModal');
+        if (lbModal) lbModal.classList.remove('hidden');
+        
+        const container = document.getElementById('leaderboardContent');
+        if (container) container.innerHTML = this.buildTableHTML();
 
-        // Kaydettikten sonra güncel Liderlik Tablosunu aç
-        this.showLeaderboard();
+        // Firebase'e ekle (asenkron - bitince listeyi kendi güncelleyecek)
+        this.addScore(name, score, charType, this.pendingIsVictory);
     }
 
     showLeaderboard() {
-        // En güncel skorları hafızadan tazele
-        this.scores = this.loadScores();
-
         const modal = document.getElementById('leaderboardModal');
-        const container = document.getElementById('leaderboardContent');
-
-        if (container) {
-            container.innerHTML = this.buildTableHTML();
-        }
         if (modal) modal.classList.remove('hidden');
+        
+        // Açılır açılmaz veriyi Firebase'den güncel olarak çek
+        this.loadScores(() => {
+            const container = document.getElementById('leaderboardContent');
+            if (container) {
+                container.innerHTML = this.buildTableHTML();
+            }
+        });
     }
 
     buildTableHTML() {
+        if (this.isLoading) {
+            return `
+                <div class="leaderboard-empty" style="padding: 30px 15px; text-align: center; color: rgba(255,255,255,0.7); font-family: 'Outfit', sans-serif;">
+                    <div style="font-size: 2.2rem; margin-bottom: 8px;">⏳</div>
+                    <div style="font-weight: 700; font-size: 1.15rem; color: #ffd54f; margin-bottom: 4px;">Sunucuya Bağlanılıyor...</div>
+                    <div style="font-size: 0.88rem; opacity: 0.7;">Gerçek zamanlı küresel skorlar yükleniyor</div>
+                </div>
+            `;
+        }
+
         if (!this.scores || this.scores.length === 0) {
             return `
                 <div class="leaderboard-empty" style="padding: 30px 15px; text-align: center; color: rgba(255,255,255,0.7); font-family: 'Outfit', sans-serif;">
@@ -515,7 +558,7 @@ class LeaderboardManager {
             fuze: '🎯'
         };
 
-        let html = `
+        let html = \`
             <table class="leaderboard-table">
                 <thead>
                     <tr>
@@ -525,11 +568,11 @@ class LeaderboardManager {
                     </tr>
                 </thead>
                 <tbody>
-        `;
+        \`;
 
         this.scores.forEach((entry, index) => {
             const rank = index + 1;
-            let rankBadge = `${rank}`;
+            let rankBadge = \`\${rank}\`;
             let rowClass = 'leaderboard-row';
 
             if (rank === 1) {
@@ -543,25 +586,25 @@ class LeaderboardManager {
                 rowClass += ' rank-3';
             } else if (rank <= 5) {
                 rowClass += ' rank-honor';
-                rankBadge = `🎖️ ${rank}`;
+                rankBadge = \`🎖️ \${rank}\`;
             }
 
             const charIcon = charIcons[entry.char] || '🛸';
             const crown = entry.isVictory ? ' 👑' : '';
 
-            html += `
-                <tr class="${rowClass}">
-                    <td>${rankBadge}</td>
-                    <td><strong>${entry.name}</strong> ${crown} <span style="opacity:0.75; font-size:0.85em; margin-left: 4px;">${charIcon}</span></td>
-                    <td><strong>${entry.score}</strong></td>
+            html += \`
+                <tr class="\${rowClass}">
+                    <td>\${rankBadge}</td>
+                    <td><strong>\${entry.name}</strong> \${crown} <span style="opacity:0.75; font-size:0.85em; margin-left: 4px;">\${charIcon}</span></td>
+                    <td><strong>\${entry.score}</strong></td>
                 </tr>
-            `;
+            \`;
         });
 
-        html += `
+        html += \`
                 </tbody>
             </table>
-        `;
+        \`;
         return html;
     }
 }
