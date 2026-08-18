@@ -114,6 +114,10 @@ class UIManager {
             closeLbBtn.addEventListener('click', () => {
                 window.soundSystem.playClick();
                 lbModal.classList.add('hidden');
+                // Eğer oyun bitmiş durumdaysa ve menüde değilsek GameOver UI göster
+                if (window.gameEngine && window.gameEngine.state === 'GAMEOVER' && !window.gameEngine.isVictory) {
+                    window.gameEngine.showGameOverUI();
+                }
             });
         }
 
@@ -396,34 +400,35 @@ class UIManager {
  */
 class LeaderboardManager {
     constructor() {
-        this.storageKey = 'flappy_horizon_leaderboard';
+        this.storageKey = 'flappy_horizon_user_leaderboard_v2';
         this.pendingScore = 0;
         this.pendingIsVictory = false;
+        this.clearOldMockData();
         this.scores = this.loadScores();
+    }
+
+    clearOldMockData() {
+        try {
+            // Eski mock / varsayılan verileri temizle
+            localStorage.removeItem('flappy_horizon_leaderboard');
+            localStorage.removeItem('flappy_horizon_leaderboard_v1');
+        } catch (e) {}
     }
 
     loadScores() {
         try {
             const raw = localStorage.getItem(this.storageKey);
             if (raw) {
-                return JSON.parse(raw);
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) {
+                    return parsed;
+                }
             }
         } catch (e) {
             console.warn('Liderlik tablosu okunamadı:', e);
         }
-        // Başlangıç varsayılan Top 10 sıralaması
-        return [
-            { name: 'ApexFalcon', score: 65, char: 'kartal', isVictory: false },
-            { name: 'CyberPilot', score: 48, char: 'drone', isVictory: false },
-            { name: 'SkyRocket', score: 38, char: 'roket', isVictory: false },
-            { name: 'Vortex', score: 27, char: 'fuze', isVictory: false },
-            { name: 'NovaWing', score: 20, char: 'kartal', isVictory: false },
-            { name: 'AeroDrone', score: 15, char: 'drone', isVictory: false },
-            { name: 'ShadowJet', score: 12, char: 'fuze', isVictory: false },
-            { name: 'StarGazer', score: 9, char: 'roket', isVictory: false },
-            { name: 'Horizon', score: 6, char: 'drone', isVictory: false },
-            { name: 'RookieFly', score: 3, char: 'kartal', isVictory: false }
-        ];
+        // Başlangıçta tamamen boş liste — sadece gerçek kullanıcı skorları yer alır
+        return [];
     }
 
     saveScores() {
@@ -441,10 +446,12 @@ class LeaderboardManager {
     }
 
     addScore(name, score, charType, isVictory = false) {
-        const cleanName = (name || 'İsimsiz Pilot').trim().substring(0, 12);
+        const cleanName = (name && name.trim().length > 0) ? name.trim().substring(0, 12) : 'Pilot';
+        const numScore = parseInt(score, 10) || 0;
+
         this.scores.push({
             name: cleanName,
-            score: score,
+            score: numScore,
             char: charType || 'drone',
             isVictory: !!isVictory,
             date: new Date().toLocaleDateString('tr-TR')
@@ -459,14 +466,14 @@ class LeaderboardManager {
     }
 
     showNameInput(score, isVictory = false) {
-        this.pendingScore = score;
+        this.pendingScore = score > 0 ? score : (window.gameEngine ? window.gameEngine.score : 0);
         this.pendingIsVictory = isVictory;
 
         const modal = document.getElementById('nameInputModal');
         const scoreDisplay = document.getElementById('nameInputScore');
         const input = document.getElementById('playerNameInput');
 
-        if (scoreDisplay) scoreDisplay.innerText = score + ' PUAN';
+        if (scoreDisplay) scoreDisplay.innerText = this.pendingScore + ' PUAN';
         if (input) {
             input.value = '';
             setTimeout(() => input.focus(), 200);
@@ -477,18 +484,22 @@ class LeaderboardManager {
     submitName() {
         const modal = document.getElementById('nameInputModal');
         const input = document.getElementById('playerNameInput');
-        const name = input ? input.value : 'Pilot';
+        const name = input ? input.value : '';
 
+        const score = this.pendingScore > 0 ? this.pendingScore : (window.gameEngine ? window.gameEngine.score : 0);
         const charType = window.characterManager ? window.characterManager.selectedCharacter : 'drone';
-        this.addScore(name, this.pendingScore, charType, this.pendingIsVictory);
+        this.addScore(name, score, charType, this.pendingIsVictory);
 
         if (modal) modal.classList.add('hidden');
 
-        // Kaydettikten sonra Liderlik Tablosunu aç
+        // Kaydettikten sonra güncel Liderlik Tablosunu aç
         this.showLeaderboard();
     }
 
     showLeaderboard() {
+        // En güncel skorları hafızadan tazele
+        this.scores = this.loadScores();
+
         const modal = document.getElementById('leaderboardModal');
         const container = document.getElementById('leaderboardContent');
 
@@ -500,7 +511,13 @@ class LeaderboardManager {
 
     buildTableHTML() {
         if (!this.scores || this.scores.length === 0) {
-            return '<div class="leaderboard-empty">Henüz kaydedilmiş skor yok. İlk rekoru sen kır!</div>';
+            return `
+                <div class="leaderboard-empty" style="padding: 30px 15px; text-align: center; color: rgba(255,255,255,0.7); font-family: 'Outfit', sans-serif;">
+                    <div style="font-size: 2.2rem; margin-bottom: 8px;">🏆</div>
+                    <div style="font-weight: 700; font-size: 1.15rem; color: #ffd54f; margin-bottom: 4px;">Henüz Kayıtlı Skor Yok</div>
+                    <div style="font-size: 0.88rem; opacity: 0.7;">İlk uçuşunu yap, rekor kır ve adını 1. sıraya yazdır!</div>
+                </div>
+            `;
         }
 
         const charIcons = {
@@ -514,7 +531,7 @@ class LeaderboardManager {
             <table class="leaderboard-table">
                 <thead>
                     <tr>
-                        <th style="width:40px; text-align:center;">SIRA</th>
+                        <th style="width:44px; text-align:center;">SIRA</th>
                         <th>PİLOT & KARAKTER</th>
                         <th style="text-align:right;">SKOR</th>
                     </tr>
@@ -547,12 +564,9 @@ class LeaderboardManager {
             html += `
                 <tr class="${rowClass}">
                     <td>${rankBadge}</td>
-                    <td><strong>${entry.name}</strong> ${crown} <span style="opacity:0.75; font-size:0.85em;">(${charIcon})</span></td>
+                    <td><strong>${entry.name}</strong> ${crown} <span style="opacity:0.75; font-size:0.85em; margin-left: 4px;">${charIcon}</span></td>
                     <td><strong>${entry.score}</strong></td>
                 </tr>
-            `;
-        });
-
         html += `
                 </tbody>
             </table>
