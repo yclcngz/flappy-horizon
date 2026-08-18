@@ -555,6 +555,9 @@ class LeaderboardManager {
                     <td><strong>${entry.name}</strong> ${crown} <span style="opacity:0.75; font-size:0.85em; margin-left: 4px;">${charIcon}</span></td>
                     <td><strong>${entry.score}</strong></td>
                 </tr>
+            `;
+        });
+
         html += `
                 </tbody>
             </table>
