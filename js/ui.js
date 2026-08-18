@@ -456,6 +456,12 @@ class LeaderboardManager {
         });
     }
 
+    isTop10(score) {
+        if (score <= 0) return false;
+        if (!this.scores || this.scores.length < 10) return true;
+        return score > this.scores[this.scores.length - 1].score;
+    }
+
     addScore(name, score, charType, isVictory = false) {
         const cleanName = (name && name.trim().length > 0) ? name.trim().substring(0, 12) : 'Pilot';
         const numScore = parseInt(score, 10) || 0;
