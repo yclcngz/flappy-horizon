@@ -810,6 +810,62 @@ class SoundSystem {
         }, stepIntervalMs);
     }
 
+    // Zafer Müziği (Victory Fanfare)
+    playVictory() {
+        if (this.muted || this.sfxMuted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        this.stopBGM();
+
+        const notes = [
+            { freq: 523.25, time: 0.0 },
+            { freq: 659.25, time: 0.12 },
+            { freq: 783.99, time: 0.24 },
+            { freq: 1046.50, time: 0.40 },
+            { freq: 783.99, time: 0.56 },
+            { freq: 1046.50, time: 0.68 },
+            { freq: 1318.51, time: 0.84 },
+        ];
+
+        notes.forEach((note, idx) => {
+            const startTime = this.ctx.currentTime + note.time;
+            const isLast = idx === notes.length - 1;
+            const dur = isLast ? 1.2 : 0.18;
+
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+
+            osc.type = isLast ? 'sine' : 'triangle';
+            osc.frequency.setValueAtTime(note.freq, startTime);
+
+            const vol = isLast ? 0.4 : 0.25;
+            gain.gain.setValueAtTime(vol * this.sfxVolume, startTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + dur);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(startTime);
+            osc.stop(startTime + dur);
+        });
+
+        if (this.noiseBuffer) {
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = this.noiseBuffer;
+            const filter = this.ctx.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.setValueAtTime(8000, this.ctx.currentTime);
+            const noiseGain = this.ctx.createGain();
+            noiseGain.gain.setValueAtTime(0.06 * this.sfxVolume, this.ctx.currentTime);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 2.0);
+            noise.connect(filter);
+            filter.connect(noiseGain);
+            noiseGain.connect(this.ctx.destination);
+            noise.start(this.ctx.currentTime);
+            noise.stop(this.ctx.currentTime + 2.0);
+        }
+    }
+
     stopBGM() {
         this.isBgmPlaying = false;
         if (this.bgmTimer) {

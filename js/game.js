@@ -47,6 +47,17 @@ class GameEngine {
         this.bestScore = 0;
         this.ringsCollected = 0;
 
+        // Can Sistemi (3 Kalp)
+        this.lives = 3;
+        this.maxLives = 3;
+        this.invincible = false;
+        this.invincibleTimer = 0;
+        this.invincibleDuration = 90; // ~1.5 saniye dokunulmazlık (60fps)
+
+        // Zafer Kontrolü
+        this.victoryScore = 100;
+        this.isVictory = false;
+
         // Efektler
         this.screenShake = 0;
 
@@ -134,7 +145,7 @@ class GameEngine {
         this.ringsCollected = 0;
         this.speed = this.baseSpeed;
         this.player.y = this.height * 0.38;
-        this.player.vy = -2.4; // Başlangıçta hafif yukarı süzülme ivmesi
+        this.player.vy = -2.4;
         this.player.angle = -0.15;
         this.wasClimbing = true;
         this.descentPlayed = false;
@@ -142,13 +153,23 @@ class GameEngine {
         this.windowSoundCooldown = 0;
         this.obstacles = [];
         this.rings = [];
-        this.obstacleTimer = 0; // İlk engelin gelmesi için bolca zaman
+        this.obstacleTimer = 0;
         this.screenShake = 0;
+
+        // Can Sistemi Sıfırla
+        this.lives = this.maxLives;
+        this.invincible = false;
+        this.invincibleTimer = 0;
+        this.isVictory = false;
+        this.updateHeartsUI();
+
         window.particleEngine.reset();
 
         document.getElementById('mainMenu').classList.add('hidden');
         document.getElementById('gameOverMenu').classList.add('hidden');
+        document.getElementById('victoryScreen').classList.add('hidden');
         document.getElementById('inGameHUD').classList.remove('hidden');
+        this.updateAutoLevel();
         this.updateHUD();
 
         window.soundSystem.startBGM();
@@ -157,13 +178,13 @@ class GameEngine {
     gameOver() {
         if (this.state === 'GAMEOVER') return;
         this.state = 'GAMEOVER';
-        this.gameOverCooldown = 25; // 25 frame bekleme
+        this.gameOverCooldown = 25;
         this.screenShake = 16;
 
         this.saveBestScore();
+        window.soundSystem.stopBGM();
 
         const charType = window.characterManager.selectedCharacter;
-        // Karaktere özel çarpışma / patlama sesi
         window.soundSystem.playCharacterCrash(charType);
 
         setTimeout(() => {
@@ -172,9 +193,111 @@ class GameEngine {
 
         window.particleEngine.emitExplosion(this.player.x, this.player.y);
 
-        // Game Over Ekranını Doldur & Göster
         document.getElementById('inGameHUD').classList.add('hidden');
-        this.showGameOverUI();
+
+        // Leaderboard kontrolü
+        const isTop10 = window.leaderboardManager && window.leaderboardManager.isTop10(this.score);
+        if (isTop10 && this.score > 0) {
+            // İsim girişi modali göster
+            setTimeout(() => {
+                window.leaderboardManager.showNameInput(this.score);
+            }, 800);
+        } else {
+            this.showGameOverUI();
+        }
+    }
+
+    // Zafer Kontrolü (Skor 100)
+    checkVictory() {
+        if (this.score >= this.victoryScore && !this.isVictory) {
+            this.isVictory = true;
+            this.state = 'GAMEOVER';
+            this.saveBestScore();
+            window.soundSystem.stopBGM();
+
+            // Zafer efektleri
+            setTimeout(() => {
+                window.soundSystem.playVictory();
+            }, 200);
+
+            // Konfeti patlatma
+            this.launchConfetti();
+
+            // Zafer ekranı
+            document.getElementById('inGameHUD').classList.add('hidden');
+            document.getElementById('victoryScore').innerText = this.score;
+            document.getElementById('victoryScreen').classList.remove('hidden');
+
+            // Leaderboard'a kaydet
+            if (window.leaderboardManager) {
+                setTimeout(() => {
+                    if (window.leaderboardManager.isTop10(this.score)) {
+                        document.getElementById('victoryScreen').classList.add('hidden');
+                        window.leaderboardManager.showNameInput(this.score, true);
+                    }
+                }, 2500);
+            }
+        }
+    }
+
+    // Konfeti Patlatma
+    launchConfetti() {
+        const container = document.getElementById('confettiContainer');
+        container.classList.remove('hidden');
+        container.innerHTML = '';
+        const colors = ['#ffd700', '#ff6b6b', '#4ecdc4', '#45b7d1', '#f7dc6f', '#bb86fc', '#ff8a65'];
+        for (let i = 0; i < 60; i++) {
+            const piece = document.createElement('div');
+            piece.className = 'confetti-piece';
+            piece.style.left = Math.random() * 100 + '%';
+            piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+            piece.style.animationDelay = (Math.random() * 1.5) + 's';
+            container.appendChild(piece);
+        }
+        setTimeout(() => {
+            container.classList.add('hidden');
+            container.innerHTML = '';
+        }, 5000);
+    }
+
+    // Can Kaybetme (Dokunulmazlık ile)
+    loseLife() {
+        if (this.invincible) return false; // Dokunulmazlık aktif, can gitmiyor
+
+        this.lives--;
+        this.screenShake = 10;
+        this.updateHeartsUI();
+
+        const charType = window.characterManager.selectedCharacter;
+        window.soundSystem.playCharacterCrash(charType);
+
+        if (this.lives <= 0) {
+            return true; // Oyun bitti
+        }
+
+        // Dokunulmazlık başlat
+        this.invincible = true;
+        this.invincibleTimer = this.invincibleDuration;
+        this.player.vy = this.player.jumpForce * 0.6; // Hafif yukarı sekme
+        return false; // Devam et
+    }
+
+    // Kalp Göstergesini Güncelle
+    updateHeartsUI() {
+        for (let i = 1; i <= this.maxLives; i++) {
+            const heart = document.querySelector(`.heart[data-heart="${i}"]`);
+            if (!heart) continue;
+            if (i > this.lives) {
+                heart.classList.add('lost');
+                if (i === this.lives + 1) {
+                    heart.classList.add('hit');
+                    setTimeout(() => heart.classList.remove('hit'), 400);
+                }
+            } else {
+                heart.classList.remove('lost', 'hit');
+            }
+        }
     }
 
     showGameOverUI() {
@@ -244,9 +367,29 @@ class GameEngine {
 
         if (this.state !== 'PLAYING') return;
 
-        // Fizik & Hızlanma
-        this.speed = this.baseSpeed + Math.min(this.score * 0.04, 2.2);
+        // Fizik & Hızlanma (Kademeli Zorluk - Yerçekimi SABİT)
+        this.speed = this.baseSpeed + Math.min(this.score * 0.04, 1.8);
+        const currentGap = Math.max(140, 170 - this.score * 0.6);
+        this.gapSize = currentGap;
+        const currentInterval = Math.max(105, 135 - this.score * 0.6);
+        this.obstacleInterval = currentInterval;
+
+        // Skor bazlı otomatik arka plan değişimi
+        this.updateAutoLevel();
+
+        // Zafer kontrolü
+        this.checkVictory();
+        if (this.isVictory) return;
+
         window.levelManager.update(this.speed);
+
+        // Dokunulmazlık zamanlayıcısı
+        if (this.invincible) {
+            this.invincibleTimer--;
+            if (this.invincibleTimer <= 0) {
+                this.invincible = false;
+            }
+        }
 
         this.player.vy = Math.min(this.player.vy + this.player.gravity, this.player.maxVy);
         this.player.y += this.player.vy;
@@ -277,7 +420,9 @@ class GameEngine {
         const groundLimit = this.height - this.groundHeight - this.player.radius;
         if (this.player.y >= groundLimit) {
             this.player.y = groundLimit;
-            this.gameOver();
+            if (this.loseLife()) {
+                this.gameOver();
+            }
             return;
         }
         if (this.player.y <= this.player.radius) {
@@ -338,7 +483,9 @@ class GameEngine {
 
             // Çarpışma Testi
             if (this.checkObstacleCollision(obs)) {
-                this.gameOver();
+                if (this.loseLife()) {
+                    this.gameOver();
+                }
                 return;
             }
 
@@ -511,6 +658,27 @@ class GameEngine {
         document.getElementById('liveLevelName').innerText = window.levelManager.getCurrentLevel().name;
     }
 
+    // Skor bazlı otomatik arka plan değişimi
+    updateAutoLevel() {
+        let targetLevel = 0;
+        if (this.score >= 80) {
+            targetLevel = 4; // Mega Gemiler
+        } else if (this.score >= 60) {
+            targetLevel = 3; // Kutup Buzulları
+        } else if (this.score >= 40) {
+            targetLevel = 2; // Metropol
+        } else if (this.score >= 20) {
+            targetLevel = 1; // Alp Dağları
+        } else {
+            targetLevel = 0; // Neon Siber
+        }
+
+        if (window.levelManager.currentLevelIndex !== targetLevel) {
+            window.levelManager.setLevel(targetLevel);
+            this.updateHUD();
+        }
+    }
+
     render() {
         this.ctx.save();
 
@@ -549,7 +717,10 @@ class GameEngine {
         // 5. Zemin
         window.levelManager.drawGround(this.ctx, this.width, this.height, this.groundHeight);
 
-        // 6. Ana Karakter
+        // 6. Ana Karakter (Dokunulmazlıkta yanıp sönme)
+        if (this.invincible && Math.floor(Date.now() / 80) % 2 === 0) {
+            this.ctx.globalAlpha = 0.35;
+        }
         window.characterManager.draw(
             this.ctx,
             this.player.x,
@@ -558,6 +729,7 @@ class GameEngine {
             null,
             1
         );
+        this.ctx.globalAlpha = 1.0;
 
         this.ctx.restore();
     }

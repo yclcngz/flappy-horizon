@@ -45,6 +45,16 @@ class UIManager {
             });
         }
 
+        const goLbBtn = document.getElementById('btnGameOverLeaderboard');
+        if (goLbBtn) {
+            goLbBtn.addEventListener('click', () => {
+                window.soundSystem.playClick();
+                if (window.leaderboardManager) {
+                    window.leaderboardManager.showLeaderboard();
+                }
+            });
+        }
+
         // Atölye / Garaj Butonları
         const garageBtn = document.getElementById('btnOpenGarage');
         const garageModal = document.getElementById('garageModal');
@@ -83,6 +93,60 @@ class UIManager {
             closeLevelBtn.addEventListener('click', () => {
                 window.soundSystem.playClick();
                 levelModal.classList.add('hidden');
+            });
+        }
+
+        // Liderlik Tablosu Butonları
+        const lbBtn = document.getElementById('btnOpenLeaderboard');
+        const lbModal = document.getElementById('leaderboardModal');
+        const closeLbBtn = document.getElementById('btnCloseLeaderboard');
+
+        if (lbBtn) {
+            lbBtn.addEventListener('click', () => {
+                window.soundSystem.playClick();
+                if (window.leaderboardManager) {
+                    window.leaderboardManager.showLeaderboard();
+                }
+            });
+        }
+
+        if (closeLbBtn) {
+            closeLbBtn.addEventListener('click', () => {
+                window.soundSystem.playClick();
+                lbModal.classList.add('hidden');
+            });
+        }
+
+        // İsim Kaydet Butonu
+        const saveNameBtn = document.getElementById('btnSaveName');
+        const nameInput = document.getElementById('playerNameInput');
+        if (saveNameBtn) {
+            saveNameBtn.addEventListener('click', () => {
+                window.soundSystem.playClick();
+                if (window.leaderboardManager) {
+                    window.leaderboardManager.submitName();
+                }
+            });
+        }
+        if (nameInput) {
+            nameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (window.leaderboardManager) {
+                        window.leaderboardManager.submitName();
+                    }
+                }
+            });
+        }
+
+        // Zafer Ekranı Menü Butonu
+        const victoryMenuBtn = document.getElementById('btnVictoryMenu');
+        if (victoryMenuBtn) {
+            victoryMenuBtn.addEventListener('click', () => {
+                window.soundSystem.playClick();
+                document.getElementById('victoryScreen').classList.add('hidden');
+                window.gameEngine.state = 'MENU';
+                document.getElementById('mainMenu').classList.remove('hidden');
             });
         }
 
@@ -327,7 +391,179 @@ class UIManager {
     }
 }
 
+/**
+ * Liderlik Tablosu (Top 10 Leaderboard) Yöneticisi
+ */
+class LeaderboardManager {
+    constructor() {
+        this.storageKey = 'flappy_horizon_leaderboard';
+        this.pendingScore = 0;
+        this.pendingIsVictory = false;
+        this.scores = this.loadScores();
+    }
+
+    loadScores() {
+        try {
+            const raw = localStorage.getItem(this.storageKey);
+            if (raw) {
+                return JSON.parse(raw);
+            }
+        } catch (e) {
+            console.warn('Liderlik tablosu okunamadı:', e);
+        }
+        // Başlangıç varsayılan Top 10 sıralaması
+        return [
+            { name: 'ApexFalcon', score: 65, char: 'kartal', isVictory: false },
+            { name: 'CyberPilot', score: 48, char: 'drone', isVictory: false },
+            { name: 'SkyRocket', score: 38, char: 'roket', isVictory: false },
+            { name: 'Vortex', score: 27, char: 'fuze', isVictory: false },
+            { name: 'NovaWing', score: 20, char: 'kartal', isVictory: false },
+            { name: 'AeroDrone', score: 15, char: 'drone', isVictory: false },
+            { name: 'ShadowJet', score: 12, char: 'fuze', isVictory: false },
+            { name: 'StarGazer', score: 9, char: 'roket', isVictory: false },
+            { name: 'Horizon', score: 6, char: 'drone', isVictory: false },
+            { name: 'RookieFly', score: 3, char: 'kartal', isVictory: false }
+        ];
+    }
+
+    saveScores() {
+        try {
+            localStorage.setItem(this.storageKey, JSON.stringify(this.scores));
+        } catch (e) {
+            console.warn('Liderlik tablosu kaydedilemedi:', e);
+        }
+    }
+
+    isTop10(score) {
+        if (score <= 0) return false;
+        if (this.scores.length < 10) return true;
+        return score > this.scores[this.scores.length - 1].score;
+    }
+
+    addScore(name, score, charType, isVictory = false) {
+        const cleanName = (name || 'İsimsiz Pilot').trim().substring(0, 12);
+        this.scores.push({
+            name: cleanName,
+            score: score,
+            char: charType || 'drone',
+            isVictory: !!isVictory,
+            date: new Date().toLocaleDateString('tr-TR')
+        });
+
+        // Skorlara göre büyükten küçüğe sırala
+        this.scores.sort((a, b) => b.score - a.score);
+
+        // Yalnızca Top 10 tut
+        this.scores = this.scores.slice(0, 10);
+        this.saveScores();
+    }
+
+    showNameInput(score, isVictory = false) {
+        this.pendingScore = score;
+        this.pendingIsVictory = isVictory;
+
+        const modal = document.getElementById('nameInputModal');
+        const scoreDisplay = document.getElementById('nameInputScore');
+        const input = document.getElementById('playerNameInput');
+
+        if (scoreDisplay) scoreDisplay.innerText = score + ' PUAN';
+        if (input) {
+            input.value = '';
+            setTimeout(() => input.focus(), 200);
+        }
+        if (modal) modal.classList.remove('hidden');
+    }
+
+    submitName() {
+        const modal = document.getElementById('nameInputModal');
+        const input = document.getElementById('playerNameInput');
+        const name = input ? input.value : 'Pilot';
+
+        const charType = window.characterManager ? window.characterManager.selectedCharacter : 'drone';
+        this.addScore(name, this.pendingScore, charType, this.pendingIsVictory);
+
+        if (modal) modal.classList.add('hidden');
+
+        // Kaydettikten sonra Liderlik Tablosunu aç
+        this.showLeaderboard();
+    }
+
+    showLeaderboard() {
+        const modal = document.getElementById('leaderboardModal');
+        const container = document.getElementById('leaderboardContent');
+
+        if (container) {
+            container.innerHTML = this.buildTableHTML();
+        }
+        if (modal) modal.classList.remove('hidden');
+    }
+
+    buildTableHTML() {
+        if (!this.scores || this.scores.length === 0) {
+            return '<div class="leaderboard-empty">Henüz kaydedilmiş skor yok. İlk rekoru sen kır!</div>';
+        }
+
+        const charIcons = {
+            drone: '🛸',
+            kartal: '🦅',
+            roket: '🚀',
+            fuze: '🎯'
+        };
+
+        let html = `
+            <table class="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th style="width:40px; text-align:center;">SIRA</th>
+                        <th>PİLOT & KARAKTER</th>
+                        <th style="text-align:right;">SKOR</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        this.scores.forEach((entry, index) => {
+            const rank = index + 1;
+            let rankBadge = `${rank}`;
+            let rowClass = 'leaderboard-row';
+
+            if (rank === 1) {
+                rankBadge = '🥇';
+                rowClass += ' rank-1';
+            } else if (rank === 2) {
+                rankBadge = '🥈';
+                rowClass += ' rank-2';
+            } else if (rank === 3) {
+                rankBadge = '🥉';
+                rowClass += ' rank-3';
+            } else if (rank <= 5) {
+                rowClass += ' rank-honor';
+                rankBadge = `🎖️ ${rank}`;
+            }
+
+            const charIcon = charIcons[entry.char] || '🛸';
+            const crown = entry.isVictory ? ' 👑' : '';
+
+            html += `
+                <tr class="${rowClass}">
+                    <td>${rankBadge}</td>
+                    <td><strong>${entry.name}</strong> ${crown} <span style="opacity:0.75; font-size:0.85em;">(${charIcon})</span></td>
+                    <td><strong>${entry.score}</strong></td>
+                </tr>
+            `;
+        });
+
+        html += `
+                </tbody>
+            </table>
+        `;
+        return html;
+    }
+}
+
 window.uiManager = null;
+window.leaderboardManager = null;
 window.addEventListener('DOMContentLoaded', () => {
+    window.leaderboardManager = new LeaderboardManager();
     window.uiManager = new UIManager();
 });

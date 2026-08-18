@@ -28,6 +28,11 @@
                 </div>
                 <div class="hud-center">
                     <span id="liveLevelName" class="level-badge">Neon Siber Şehir</span>
+                    <div id="heartsDisplay" class="hearts-container">
+                        <span class="heart" data-heart="1">❤️</span>
+                        <span class="heart" data-heart="2">❤️</span>
+                        <span class="heart" data-heart="3">❤️</span>
+                    </div>
                 </div>
                 <div class="hud-stat best-box">
                     <span class="hud-label">REKOR</span>
@@ -59,6 +64,9 @@
                 </button>
                 <button id="btnOpenLevels" class="btn btn-tertiary">
                     <span class="btn-icon">🌍</span> SEVİYE VE DÜNYALAR
+                </button>
+                <button id="btnOpenLeaderboard" class="btn btn-leaderboard">
+                    <span class="btn-icon">🏆</span> LİDERLİK TABLOSU
                 </button>
             </div>
 
@@ -97,7 +105,10 @@
                     <button id="btnRestartGame" class="btn btn-primary">
                         <span class="btn-icon">🔄</span> TEKRAR UÇ
                     </button>
-                    <button id="btnBackToMenu" class="btn btn-secondary">
+                    <button id="btnGameOverLeaderboard" class="btn btn-secondary">
+                        <span class="btn-icon">🏆</span> LİDERLİK TABLOSU
+                    </button>
+                    <button id="btnBackToMenu" class="btn btn-tertiary">
                         <span class="btn-icon">🏠</span> ANA MENÜ
                     </button>
                 </div>
@@ -267,14 +278,60 @@
                 </div>
             </div>
         </div>
+
+        <!-- İsim Giriş Modalı (Leaderboard için) -->
+        <div id="nameInputModal" class="modal-overlay hidden">
+            <div class="modal-card">
+                <div class="name-input-box">
+                    <h2>🏆 TOP 10'A GİRDİN!</h2>
+                    <p>İsmini girerek sıralamanı kaydet</p>
+                    <div id="nameInputScore" class="score-display">0</div>
+                    <input type="text" id="playerNameInput" class="name-input-field" placeholder="İsmini yaz..." maxlength="12" autocomplete="off">
+                    <div style="margin-top: 16px;">
+                        <button id="btnSaveName" class="btn btn-primary">💾 KAYDET</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Liderlik Tablosu Modalı -->
+        <div id="leaderboardModal" class="modal-overlay hidden">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3>🏆 Liderlik Tablosu</h3>
+                    <button id="btnCloseLeaderboard" class="btn-close">✕</button>
+                </div>
+                <div id="leaderboardContent">
+                    <!-- Dinamik JavaScript ile doldurulur -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Zafer Ekranı -->
+        <div id="victoryScreen" class="menu-overlay hidden">
+            <div class="victory-box">
+                <h2>🎉 TEBRİKLER!</h2>
+                <p class="victory-subtitle">FLAPPY HORIZON'U FETHETTİN!</p>
+                <div class="victory-badge">⭐ EFSANE PİLOT ⭐</div>
+                <div id="victoryScore" class="victory-score">100</div>
+                <div class="game-over-actions">
+                    <button id="btnVictoryMenu" class="btn btn-primary">
+                        <span class="btn-icon">🏠</span> ANA MENÜ
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Konfeti Konteyneri -->
+        <div id="confettiContainer" class="confetti-container hidden"></div>
     </div>
 
-    <!-- Scripts (v2 = descent + crash sesleri güncellemesi) -->
-    <script src="js/audio.js?v=4"></script>
-    <script src="js/particles.js?v=4"></script>
-    <script src="js/characters.js?v=4"></script>
-    <script src="js/levels.js?v=4"></script>
-    <script src="js/game.js?v=4"></script>
-    <script src="js/ui.js?v=4"></script>
+    <!-- Scripts (v5 = can sistemi + leaderboard + zorluk + zafer) -->
+    <script src="js/audio.js?v=5"></script>
+    <script src="js/particles.js?v=5"></script>
+    <script src="js/characters.js?v=5"></script>
+    <script src="js/levels.js?v=5"></script>
+    <script src="js/game.js?v=5"></script>
+    <script src="js/ui.js?v=5"></script>
 </body>
 </html>
