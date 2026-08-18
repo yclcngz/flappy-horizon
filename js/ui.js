@@ -558,7 +558,7 @@ class LeaderboardManager {
             fuze: '🎯'
         };
 
-        let html = \`
+        let html = `
             <table class="leaderboard-table">
                 <thead>
                     <tr>
@@ -568,11 +568,11 @@ class LeaderboardManager {
                     </tr>
                 </thead>
                 <tbody>
-        \`;
+        `;
 
         this.scores.forEach((entry, index) => {
             const rank = index + 1;
-            let rankBadge = \`\${rank}\`;
+            let rankBadge = `${rank}`;
             let rowClass = 'leaderboard-row';
 
             if (rank === 1) {
@@ -586,25 +586,25 @@ class LeaderboardManager {
                 rowClass += ' rank-3';
             } else if (rank <= 5) {
                 rowClass += ' rank-honor';
-                rankBadge = \`🎖️ \${rank}\`;
+                rankBadge = `🎖️ ${rank}`;
             }
 
             const charIcon = charIcons[entry.char] || '🛸';
             const crown = entry.isVictory ? ' 👑' : '';
 
-            html += \`
-                <tr class="\${rowClass}">
-                    <td>\${rankBadge}</td>
-                    <td><strong>\${entry.name}</strong> \${crown} <span style="opacity:0.75; font-size:0.85em; margin-left: 4px;">\${charIcon}</span></td>
-                    <td><strong>\${entry.score}</strong></td>
+            html += `
+                <tr class="${rowClass}">
+                    <td>${rankBadge}</td>
+                    <td><strong>${entry.name}</strong> ${crown} <span style="opacity:0.75; font-size:0.85em; margin-left: 4px;">${charIcon}</span></td>
+                    <td><strong>${entry.score}</strong></td>
                 </tr>
-            \`;
+            `;
         });
 
-        html += \`
+        html += `
                 </tbody>
             </table>
-        \`;
+        `;
         return html;
     }
 }
