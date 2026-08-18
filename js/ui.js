@@ -13,7 +13,7 @@ class UIManager {
     initUI() {
         this.bindMenuButtons();
         this.bindCustomizationControls();
-        this.bindLevelSelector();
+        this.renderLevelGrid();
         this.startPreviewLoop();
     }
 
