@@ -192,31 +192,143 @@ class UIManager {
             if (window.gameEngine) window.gameEngine.state = 'MENU';
         });
 
-        // 12.A. SORU ÇÖZ (+1 CAN) - GEÇİCİ LOGIC (Faz 3'te modal açılacak)
+        // 12.A. SORU ÇÖZ (+1 CAN)
         bindButton('btnMathQuestion', () => {
             if (window.gameEngine && window.gameEngine.lives < window.gameEngine.maxLives && window.gameEngine.extraLifeCooldown <= 0) {
-                // Şimdilik sadece test için direkt can veriyoruz ve cooldown ekliyoruz.
-                window.gameEngine.lives++;
-                window.gameEngine.extraLifeCooldown = 5; // Sonraki soru için 5 skor uçmalı
-                window.gameEngine.updateHeartsUI();
-                window.gameEngine.updateHUD();
-                
-                // Oyunu geçici duraklat/devam ettir animasyonu
-                window.gameEngine.togglePause();
-                setTimeout(() => window.gameEngine.togglePause(), 200);
+                // Oyunu duraklat
+                if (window.gameEngine.state === 'PLAYING') {
+                    window.gameEngine.togglePause();
+                }
+
+                const modal = document.getElementById('mathQuestionModal');
+                const qText = document.getElementById('mathQuestionText');
+                const optContainer = document.getElementById('mathOptionsContainer');
+                const resultDiv = document.getElementById('mathResult');
+
+                // Profil bilgilerine göre soru çek
+                const profile = this.playerProfile || { country: 'TR', grade: '1' };
+                const question = window.getRandomQuestion ? window.getRandomQuestion(profile.country, profile.grade) : null;
+
+                if (!question) {
+                    qText.innerText = "Şimdilik uygun soru bulunamadı! (Beleş +1 Can)";
+                    optContainer.innerHTML = '';
+                    window.gameEngine.lives++;
+                    window.gameEngine.extraLifeCooldown = 5;
+                    window.gameEngine.updateHeartsUI();
+                    window.gameEngine.updateHUD();
+                    setTimeout(() => {
+                        modal.classList.add('hidden');
+                        if (window.gameEngine.state === 'PAUSED') window.gameEngine.togglePause();
+                    }, 1500);
+                    modal.classList.remove('hidden');
+                    return;
+                }
+
+                qText.innerText = question.questionText;
+                optContainer.innerHTML = '';
+                resultDiv.classList.add('hidden');
+                resultDiv.innerText = '';
+
+                question.options.forEach((opt, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-secondary';
+                    btn.style.width = '100%';
+                    btn.innerText = opt;
+                    btn.onclick = () => {
+                        // Seçeneklere tekrar tıklanmasını engelle
+                        Array.from(optContainer.children).forEach(b => b.disabled = true);
+
+                        if (index === question.correctAnswerIndex) {
+                            resultDiv.innerText = "✅ DOĞRU! +1 CAN KAZANDIN!";
+                            resultDiv.style.color = "#4ade80";
+                            resultDiv.classList.remove('hidden');
+                            if (window.soundSystem) window.soundSystem.playScore(); 
+                            
+                            window.gameEngine.lives++;
+                            window.gameEngine.extraLifeCooldown = 5;
+
+                            // Profil istatistiğini güncelle
+                            if (window.uiManager && window.uiManager.playerProfile) {
+                                if (!window.uiManager.playerProfile.correctAnswers) window.uiManager.playerProfile.correctAnswers = 0;
+                                window.uiManager.playerProfile.correctAnswers++;
+                                localStorage.setItem('flappy_player_profile', JSON.stringify(window.uiManager.playerProfile));
+                                
+                                // Rozet kontrolü
+                                if (window.uiManager.playerProfile.correctAnswers === 10) {
+                                    setTimeout(() => {
+                                        alert("🎉 HARİKA! 10 matematik sorusunu doğru bildiğin için 'BİLGİN 🎓' rozeti kazandın!");
+                                    }, 500);
+                                }
+                            }
+                        } else {
+                            resultDiv.innerText = "❌ YANLIŞ! 10 SKOR UÇMALISIN.";
+                            resultDiv.style.color = "#f87171";
+                            resultDiv.classList.remove('hidden');
+                            if (window.soundSystem) window.soundSystem.playCrash(); // Veya özel ses
+                            
+                            window.gameEngine.extraLifeCooldown = 10;
+                        }
+
+                        window.gameEngine.updateHeartsUI();
+                        window.gameEngine.updateHUD();
+
+                        setTimeout(() => {
+                            modal.classList.add('hidden');
+                            if (window.gameEngine.state === 'PAUSED') window.gameEngine.togglePause();
+                        }, 1500);
+                    };
+                    optContainer.appendChild(btn);
+                });
+
+                modal.classList.remove('hidden');
             }
         });
 
-        // 12.B. REKLAM İZLE (+1 CAN) - GEÇİCİ LOGIC (Faz 4'te mock reklam açılacak)
+        bindButton('btnCloseMath', () => {
+            document.getElementById('mathQuestionModal').classList.add('hidden');
+            if (window.gameEngine && window.gameEngine.state === 'PAUSED') {
+                window.gameEngine.togglePause();
+            }
+        });
+
+        // 12.B. REKLAM İZLE (+1 CAN)
         bindButton('btnWatchAd', () => {
             if (window.gameEngine && window.gameEngine.lives < window.gameEngine.maxLives && window.gameEngine.extraLifeCooldown <= 0) {
-                window.gameEngine.lives++;
-                window.gameEngine.extraLifeCooldown = 5;
-                window.gameEngine.updateHeartsUI();
-                window.gameEngine.updateHUD();
+                if (window.gameEngine.state === 'PLAYING') {
+                    window.gameEngine.togglePause();
+                }
+
+                const modal = document.getElementById('adWatchModal');
+                const timerText = document.getElementById('adTimerText');
+                const adResult = document.getElementById('adResult');
                 
-                window.gameEngine.togglePause();
-                setTimeout(() => window.gameEngine.togglePause(), 200);
+                adResult.classList.add('hidden');
+                modal.classList.remove('hidden');
+
+                let timeLeft = 3;
+                timerText.innerText = timeLeft;
+
+                const timerInterval = setInterval(() => {
+                    timeLeft--;
+                    timerText.innerText = timeLeft;
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        adResult.classList.remove('hidden');
+                        
+                        if (window.soundSystem) window.soundSystem.playScore(); // Para/Can sesi
+                        
+                        window.gameEngine.lives++;
+                        window.gameEngine.extraLifeCooldown = 5;
+                        window.gameEngine.updateHeartsUI();
+                        window.gameEngine.updateHUD();
+
+                        setTimeout(() => {
+                            modal.classList.add('hidden');
+                            if (window.gameEngine.state === 'PAUSED') window.gameEngine.togglePause();
+                        }, 1000);
+                    }
+                }, 1000);
             }
         });
 
@@ -549,11 +661,14 @@ class LeaderboardManager {
         const cleanName = (name && name.trim().length > 0) ? name.trim().substring(0, 12) : 'Pilot';
         const numScore = parseInt(score, 10) || 0;
 
+        const hasBadge = window.uiManager && window.uiManager.playerProfile && window.uiManager.playerProfile.correctAnswers >= 10;
+        
         const newEntry = {
             name: cleanName,
             score: numScore,
             char: charType || 'drone',
             isVictory: !!isVictory,
+            hasBadge: !!hasBadge,
             date: new Date().toLocaleDateString('tr-TR'),
             timestamp: firebase.database.ServerValue.TIMESTAMP
         };
@@ -706,11 +821,12 @@ class LeaderboardManager {
 
             const charIcon = charIcons[entry.char] || '🛸';
             const crown = entry.isVictory ? ' 👑' : '';
+            const bilginBadge = entry.hasBadge ? ' 🎓' : '';
 
             html += `
                 <tr class="${rowClass}">
                     <td>${rankBadge}</td>
-                    <td><strong>${entry.name}</strong> ${crown} <span style="opacity:0.75; font-size:0.85em; margin-left: 4px;">${charIcon}</span></td>
+                    <td><strong>${entry.name}</strong> ${crown}${bilginBadge} <span style="opacity:0.75; font-size:0.85em; margin-left: 4px;">${charIcon}</span></td>
                     <td><strong>${entry.score}</strong></td>
                 </tr>
             `;
