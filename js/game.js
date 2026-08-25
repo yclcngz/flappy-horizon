@@ -29,9 +29,9 @@ class GameEngine {
             isFlapping: false
         };
 
-        // Engeller ve Halkalar
+        // Engeller ve Halkalar/Altınlar
         this.obstacles = [];
-        this.rings = [];
+        this.collectibles = [];
         this.obstacleTimer = 0;
         this.obstacleInterval = 135; // Engeller arası rahat mesafe
         this.gapSize = 170;          // Genişletilmiş rahat geçiş aralığı
@@ -46,6 +46,7 @@ class GameEngine {
         this.score = 0;
         this.bestScore = 0;
         this.ringsCollected = 0;
+        this.goldBalance = 0;
 
         // Can Sistemi
         this.startLives = 3;
@@ -57,6 +58,12 @@ class GameEngine {
 
         // Can Kazanma Bekleme Süresi (Cooldown)
         this.extraLifeCooldown = 0; // Bir sonraki butonu açmak için uçulması gereken skor (başlangıçta 0)
+
+        // Özel Güçlendirmeler (Power-Ups)
+        this.activePowerUp = null; // 'shield', 'tornado', 'time', 'magnet'
+        this.powerUpTimer = 0;
+        this.powerUpDuration = 0;
+        this.powerUps = [];
 
         // Zafer Kontrolü
         this.victoryScore = Infinity;
@@ -88,9 +95,14 @@ class GameEngine {
 
     loadBestScore() {
         try {
-            const saved = localStorage.getItem('flappy_best_score');
-            if (saved !== null) {
-                this.bestScore = parseInt(saved, 10);
+            const savedScore = localStorage.getItem('flappy_best_score');
+            if (savedScore !== null) {
+                this.bestScore = parseInt(savedScore, 10);
+            }
+            
+            const savedGold = localStorage.getItem('flappy_gold_balance');
+            if (savedGold !== null) {
+                this.goldBalance = parseInt(savedGold, 10);
             }
         } catch (e) {}
     }
@@ -102,6 +114,12 @@ class GameEngine {
                 localStorage.setItem('flappy_best_score', this.bestScore);
             } catch (e) {}
         }
+    }
+    
+    saveGold() {
+        try {
+            localStorage.setItem('flappy_gold_balance', this.goldBalance);
+        } catch (e) {}
     }
 
     bindEvents() {
@@ -178,7 +196,10 @@ class GameEngine {
         this.normalObstacleCount = 0;
         this.windowSoundCooldown = 0;
         this.obstacles = [];
-        this.rings = [];
+        this.collectibles = [];
+        this.powerUps = [];
+        this.activePowerUp = null;
+        this.powerUpTimer = 0;
         this.obstacleTimer = 0;
         this.screenShake = 0;
 
@@ -317,6 +338,7 @@ class GameEngine {
         for (let i = 1; i <= this.maxLives; i++) {
             const heart = document.querySelector(`.heart[data-heart="${i}"]`);
             if (!heart) continue;
+            heart.style.display = 'inline-block'; // Max cana dahilse göster
             if (i > this.lives) {
                 heart.classList.add('lost');
                 if (i === this.lives + 1) {
@@ -332,7 +354,26 @@ class GameEngine {
     showGameOverUI() {
         const goMenu = document.getElementById('gameOverMenu');
         document.getElementById('finalScore').innerText = this.score;
-        document.getElementById('finalBestScore').innerText = this.bestScore;
+        document.getElementById('finalBestScore').innerText = Math.max(this.score, this.bestScore);
+        
+        let title = "Acemi Pilot";
+        if (this.score >= 1500) title = "👑 Efsanevi Kral";
+        else if (this.score >= 1000) title = "✨ Usta Pilot";
+        else if (this.score >= 500) title = "🔥 Yetenekli Sürücü";
+        
+        let titleEl = document.getElementById('playerTitle');
+        if (!titleEl) {
+            titleEl = document.createElement('div');
+            titleEl.id = 'playerTitle';
+            titleEl.style.color = '#fbbf24';
+            titleEl.style.fontSize = '1.2rem';
+            titleEl.style.marginBottom = '10px';
+            document.getElementById('finalScore').parentNode.insertBefore(titleEl, document.getElementById('finalScore'));
+        }
+        titleEl.innerText = title;
+
+        goMenu.classList.remove('hidden');
+        window.soundSystem.playGameOver();
 
         // Madalya Değerlendirmesi
         const medalContainer = document.getElementById('medalContainer');
@@ -421,8 +462,30 @@ class GameEngine {
 
         if (this.state !== 'PLAYING') return;
 
-        // Fizik & Hızlanma (Kademeli Zorluk - Yerçekimi SABİT)
+        // Fizik & Hızlanma (Kademeli Zorluk)
         this.speed = this.baseSpeed + Math.min(this.score * 0.02, 1.8);
+        
+        // Milestone Mekanikleri
+        if (this.score >= 500 && this.maxLives === 5) {
+            this.maxLives = 6;
+            this.lives++;
+            this.updateHeartsUI();
+            window.soundSystem.playPowerUp();
+        }
+        if (this.score >= 1000 && this.invincibleDuration === 90) {
+            this.invincibleDuration = 180; // 3 saniye dokunulmazlık
+            window.soundSystem.playPowerUp();
+        }
+        
+        if (this.activePowerUp === 'time') {
+            this.speed *= 0.5;
+            this.player.gravity = 0.10;
+            this.player.maxVy = 3.0;
+        } else {
+            this.player.gravity = 0.20;
+            this.player.maxVy = 6.0;
+        }
+        
         const currentGap = Math.max(140, 170 - this.score * 0.3);
         this.gapSize = currentGap;
         const currentInterval = Math.max(105, 135 - this.score * 0.3);
@@ -462,6 +525,24 @@ class GameEngine {
 
         if (Math.random() > 0.4) {
             window.particleEngine.emitTrail(this.player.x, this.player.y, charType, charCfg);
+            // 500 Puan: Altın Sarısı Kıvılcım (Gold Spark) efekti
+            if (this.score >= 500) {
+                const color = '#fbbf24';
+                const count = 1;
+                for (let i = 0; i < count; i++) {
+                    window.particleEngine.particles.push({
+                        x: this.player.x - 20,
+                        y: this.player.y + (Math.random() - 0.5) * 20,
+                        vx: -this.speed * 0.5 + (Math.random() - 0.5) * 2,
+                        vy: (Math.random() - 0.5) * 2,
+                        alpha: 1.0,
+                        decay: Math.random() * 0.03 + 0.02,
+                        color: color,
+                        size: Math.random() * 3 + 1,
+                        type: 'spark'
+                    });
+                }
+            }
         }
 
         // İnişe geçiş anı süzülme sesi (Karakter zıplama zirvesinden inişe geçtiği an)
@@ -485,11 +566,16 @@ class GameEngine {
             this.player.vy = 0;
         }
 
-        // Yeni Engel ve Halka Üretimi
+        // Yeni Engel ve Eşya Üretimi
         this.obstacleTimer++;
         if (this.obstacleTimer >= this.obstacleInterval) {
             this.obstacleTimer = 0;
             this.spawnObstacle();
+            
+            // Power-Up Spawn logic (>200 puan ve %10 ihtimal)
+            if (this.score >= 200 && Math.random() < 0.1 && !this.activePowerUp) {
+                this.spawnPowerUp();
+            }
         }
 
         // Pencere sesi cooldown
@@ -531,7 +617,7 @@ class GameEngine {
             // Skor Sayımı
             if (!obs.passed && obs.x + obs.width < this.player.x) {
                 obs.passed = true;
-                const points = obs.isWalled ? 3 : 1;
+                const points = obs.isWalled ? 2 : 1;
                 this.score += points;
                 
                 // Can Kazanma Cooldown'ını düşür
@@ -543,12 +629,26 @@ class GameEngine {
                 this.updateHUD();
             }
 
-            // Çarpışma Testi
+            // Kasırga Etkisi
+            if (this.activePowerUp === 'tornado' && obs.x > this.player.x) {
+                // Engelleri sağa doğru savur
+                obs.x += this.speed * 2;
+            }
+
+            // Çarpışma Testi ve Yıkıcı Kalkan
             if (this.checkObstacleCollision(obs)) {
-                if (this.loseLife()) {
-                    this.gameOver();
+                if (this.activePowerUp === 'shield') {
+                    // Yıkıcı kalkan engeli parçalar
+                    window.particleEngine.emitRingBurst(obs.x + obs.width/2, this.player.y, '#f97316'); // Turuncu ateş patlaması
+                    window.soundSystem.playPowerUp();
+                    this.obstacles.splice(i, 1);
+                    continue;
+                } else {
+                    if (this.loseLife()) {
+                        this.gameOver();
+                    }
+                    return;
                 }
-                return;
             }
 
             // Ekrandan çıkan engelleri sil
@@ -557,25 +657,110 @@ class GameEngine {
             }
         }
 
-        // Halkaları Güncelle & Toplama Kontrolü
-        for (let i = this.rings.length - 1; i >= 0; i--) {
-            const ring = this.rings[i];
-            ring.x -= this.speed;
+        // Toplanabilirleri Güncelle (Altın, Elmas, Zümrüt, Yakut)
+        for (let i = this.collectibles.length - 1; i >= 0; i--) {
+            const item = this.collectibles[i];
+            item.x -= this.speed;
 
-            if (!ring.collected) {
-                const dist = Math.hypot(this.player.x - ring.x, this.player.y - ring.y);
-                if (dist < this.player.radius + ring.radius) {
-                    ring.collected = true;
-                    this.score += 2; // Bonus +2 puan
-                    this.ringsCollected++;
-                    window.soundSystem.playRing();
-                    window.particleEngine.emitRingBurst(ring.x, ring.y, window.levelManager.getCurrentLevel().ringColor);
+            if (!item.collected) {
+                const dist = Math.hypot(this.player.x - item.x, this.player.y - item.y);
+                if (dist < this.player.radius + item.radius) {
+                    item.collected = true;
+                    
+                    let burstColor = '#fbbf24'; // Altın varsayılan
+                    if (item.type === 'gold') {
+                        this.score += 1;
+                        this.goldBalance += 1;
+                        window.soundSystem.playRing(); 
+                    } else if (item.type === 'diamond') {
+                        this.score += 3;
+                        burstColor = '#38bdf8';
+                        window.soundSystem.playPowerUp();
+                    } else if (item.type === 'emerald') {
+                        this.score += 10;
+                        burstColor = '#34d399';
+                        window.soundSystem.playPowerUp();
+                    } else if (item.type === 'ruby') {
+                        this.score += 20;
+                        burstColor = '#f43f5e';
+                        window.soundSystem.playPowerUp();
+                    }
+                    
+                    window.particleEngine.emitRingBurst(item.x, item.y, burstColor);
+                    this.saveGold();
                     this.updateHUD();
                 }
             }
 
-            if (ring.x < -50) {
-                this.rings.splice(i, 1);
+            if (item.x < -50 || item.collected) {
+                this.collectibles.splice(i, 1);
+            }
+        }
+        
+        // Güçlendirmeleri (Power-Ups) Güncelle & Toplama
+        for (let i = this.powerUps.length - 1; i >= 0; i--) {
+            const pu = this.powerUps[i];
+            pu.x -= this.speed;
+            
+            if (!pu.collected) {
+                const dist = Math.hypot(this.player.x - pu.x, this.player.y - pu.y);
+                if (dist < this.player.radius + pu.radius) {
+                    pu.collected = true;
+                    this.activatePowerUp(pu.type);
+                }
+            }
+            
+            if (pu.x < -50 || pu.collected) {
+                this.powerUps.splice(i, 1);
+            }
+        }
+        
+        // Aktif Power-Up Süresini Yönet
+        if (this.activePowerUp) {
+            this.powerUpTimer--;
+            
+            if (this.activePowerUp === 'magnet') {
+                this.applyMagnetEffect();
+            }
+            
+            if (this.powerUpTimer % 60 === 0) {
+                this.updateHUD(); // Saniye düştükçe arayüzü güncelle
+            }
+            
+            if (this.powerUpTimer <= 0) {
+                this.activePowerUp = null;
+                this.updateHUD();
+                // Deactivate effects (Time Bender speed reset handled dynamically)
+            }
+        }
+    }
+
+    activatePowerUp(type) {
+        this.activePowerUp = type;
+        window.soundSystem.playPowerUp();
+        
+        switch (type) {
+            case 'shield': this.powerUpDuration = 60 * 8; break; // 8 seconds
+            case 'tornado': this.powerUpDuration = 60 * 10; break; // 10 seconds
+            case 'time': this.powerUpDuration = 60 * 12; break; // 12 seconds
+            case 'magnet': this.powerUpDuration = 60 * 15; break; // 15 seconds
+        }
+        this.powerUpTimer = this.powerUpDuration;
+    }
+
+    applyMagnetEffect() {
+        for (let item of this.collectibles) {
+            // Sadece ekranda olanları çek
+            if (item.x > 0 && item.x < this.width) {
+                const dx = this.player.x - item.x;
+                const dy = this.player.y - item.y;
+                const dist = Math.hypot(dx, dy);
+                if (dist < 200) { // 200px çekim alanı
+                    const speedX = (dx / dist) * 8;
+                    const speedY = (dy / dist) * 8;
+                    item.x += speedX;
+                    item.y += speedY;
+                }
             }
         }
     }
@@ -608,16 +793,73 @@ class GameEngine {
             isWalled: false
         });
 
-        // Seviye izin veriyorsa veya rastgele %60 ihtimalle araya neon halka yerleştir
-        const lvl = window.levelManager.getCurrentLevel();
-        if (lvl.hasRings || Math.random() > 0.4) {
-            this.rings.push({
-                x: this.width + 20 + obsWidth / 2,
-                y: topHeight + this.gapSize / 2,
-                radius: 22,
-                collected: false
-            });
+        // Dinamik Altın ve Değerli Taş Üretimi (Smart Spawning)
+        this.spawnCollectibles(topHeight, this.gapSize, this.width + 20 + obsWidth);
+    }
+
+    spawnCollectibles(topY, gap, startX) {
+        // Gem (Değerli taş) spawn mantığı (Belirli skor katlarında çıkar)
+        // Check if we passed a multiple recently
+        const r = Math.random();
+        
+        let spawnedGem = false;
+        
+        if (this.score >= 220 && this.score % 220 < 5 && Math.random() > 0.5) {
+            // Ruby
+            this.collectibles.push({ x: startX + 50, y: topY + gap / 2, radius: 25, type: 'ruby', collected: false });
+            spawnedGem = true;
+        } else if (this.score >= 120 && this.score % 120 < 5 && Math.random() > 0.4) {
+            // Emerald
+            this.collectibles.push({ x: startX + 50, y: topY + gap / 2, radius: 22, type: 'emerald', collected: false });
+            spawnedGem = true;
+        } else if (this.score >= 50 && this.score % 50 < 5 && Math.random() > 0.3) {
+            // Diamond
+            this.collectibles.push({ x: startX + 50, y: topY + gap / 2, radius: 20, type: 'diamond', collected: false });
+            spawnedGem = true;
         }
+        
+        // Eğer gem çıkmadıysa altın dizilimi yap
+        if (!spawnedGem && r > 0.3) {
+            const pattern = Math.random();
+            const count = Math.floor(Math.random() * 3) + 1; // 1 ile 3 arası altın
+            
+            for (let i = 0; i < count; i++) {
+                let yOffset = 0;
+                
+                if (pattern < 0.33) {
+                    // Kavis (Arc)
+                    yOffset = Math.sin((i / (count - 1 || 1)) * Math.PI) * 40 - 20;
+                } else if (pattern < 0.66) {
+                    // Zikzak
+                    yOffset = (i % 2 === 0 ? 30 : -30);
+                } else {
+                    // Düz Çizgi (Hafif eğimli olabilir)
+                    yOffset = (i - count/2) * 10;
+                }
+                
+                this.collectibles.push({
+                    x: startX + 30 + i * 50,
+                    y: topY + gap / 2 + yOffset,
+                    radius: 18,
+                    type: 'gold',
+                    collected: false
+                });
+            }
+        }
+    }
+
+    spawnPowerUp() {
+        const types = ['shield', 'tornado', 'time', 'magnet'];
+        const type = types[Math.floor(Math.random() * types.length)];
+        const yPos = Math.floor(Math.random() * (this.height - this.groundHeight - 100)) + 50;
+        
+        this.powerUps.push({
+            x: this.width + 50,
+            y: yPos,
+            radius: 22,
+            type: type,
+            collected: false
+        });
     }
 
     // Kapalı Sütun + Açılır/Kapanır Pencere Üretici
@@ -716,6 +958,7 @@ class GameEngine {
 
     updateHUD() {
         document.getElementById('liveScore').innerText = this.score;
+        document.getElementById('liveGold').innerText = this.goldBalance;
         document.getElementById('liveBestScore').innerText = Math.max(this.score, this.bestScore);
         const currentLevel = window.levelManager.getCurrentLevel();
         const levelKey = 'level' + currentLevel.id.charAt(0).toUpperCase() + currentLevel.id.slice(1);
@@ -725,6 +968,23 @@ class GameEngine {
             : currentLevel.name;
         
         document.getElementById('liveLevelName').innerText = translatedName;
+        
+        
+        const puUI = document.getElementById('powerUpIndicator');
+        if (this.activePowerUp && puUI) {
+            puUI.classList.remove('hidden');
+            let icon = '';
+            switch (this.activePowerUp) {
+                case 'shield': icon = '🔥 KALKAN'; break;
+                case 'tornado': icon = '🌪️ KASIRGA'; break;
+                case 'time': icon = '⚡ ZAMAN'; break;
+                case 'magnet': icon = '🧲 MIKNATIS'; break;
+            }
+            const sec = Math.ceil(this.powerUpTimer / 60);
+            puUI.innerText = `${icon} (${sec}s)`;
+        } else if (puUI) {
+            puUI.classList.add('hidden');
+        }
         
         // Ekstra Can Butonlarını Güncelle
         const btnMath = document.getElementById('btnMathQuestion');
@@ -760,6 +1020,45 @@ class GameEngine {
         }
     }
 
+    drawPowerUp(ctx, pu) {
+        ctx.save();
+        ctx.translate(pu.x, pu.y);
+        
+        const pulse = Math.sin(Date.now() * 0.01) * 3;
+        
+        // Dış Halo (Parlaklık)
+        ctx.beginPath();
+        ctx.arc(0, 0, pu.radius + pulse, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.fill();
+        
+        // İç Kapsül Rengi
+        let color = '#fff';
+        let icon = '';
+        switch (pu.type) {
+            case 'shield': color = '#f97316'; icon = '🔥'; break;
+            case 'tornado': color = '#94a3b8'; icon = '🌪️'; break;
+            case 'time': color = '#a855f7'; icon = '⚡'; break;
+            case 'magnet': color = '#ef4444'; icon = '🧲'; break;
+        }
+        
+        ctx.beginPath();
+        ctx.arc(0, 0, pu.radius, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // İkon
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(icon, 0, 0);
+        
+        ctx.restore();
+    }
+
     // Skor bazlı otomatik arka plan değişimi
     updateAutoLevel() {
         // Her 50 puanda bir mekan değişsin ve 5 mekan arasında sonsuz döngü yapsın
@@ -784,16 +1083,16 @@ class GameEngine {
         if (this.state !== 'PLAYING') return;
 
         // Seviyelere göre yön belirleme
-        if (this.score < 40) {
+        if (this.score < 150) {
             this.targetCameraAngle = 0; // Normal (Soldan Sağa)
             this.targetCameraScaleX = 1;
-        } else if (this.score < 80) {
+        } else if (this.score < 300) {
             this.targetCameraAngle = -90; // Aşağıdan Yukarıya (Zemin sağda)
             this.targetCameraScaleX = 1;
-        } else if (this.score < 120) {
+        } else if (this.score < 450) {
             this.targetCameraAngle = 0; // Sağdan Sola (Yerçekimi AŞAĞI, sadece yatay aynalama)
             this.targetCameraScaleX = -1;
-        } else if (this.score < 160) {
+        } else if (this.score < 600) {
             this.targetCameraAngle = 90; // Yukarıdan Aşağıya (Zemin solda)
             this.targetCameraScaleX = 1;
         } else {
@@ -871,9 +1170,18 @@ class GameEngine {
             );
         }
 
-        // 4. Halkalar
-        for (let ring of this.rings) {
-            window.levelManager.drawRing(this.ctx, ring.x, ring.y, ring.radius, ring.collected);
+        // 4. Toplanabilirler
+        for (let item of this.collectibles) {
+            if (!item.collected) {
+                window.levelManager.drawCollectible(this.ctx, item.x, item.y, item.radius, item.type);
+            }
+        }
+        
+        // Güç Kapsülleri (Power-Ups)
+        for (let pu of this.powerUps) {
+            if (!pu.collected) {
+                this.drawPowerUp(this.ctx, pu);
+            }
         }
 
         // 5. Zemin
@@ -882,6 +1190,20 @@ class GameEngine {
         // 6. Ana Karakter (Dokunulmazlıkta yanıp sönme)
         if (this.invincible && Math.floor(Date.now() / 80) % 2 === 0) {
             this.ctx.globalAlpha = 0.35;
+        }
+        
+        // 1000 Puan Barajı: Parlak Neon Aura
+        if (this.score >= 1000) {
+            this.ctx.save();
+            this.ctx.translate(this.player.x, this.player.y);
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, this.player.radius + 15 + Math.sin(Date.now()*0.005)*5, 0, Math.PI*2);
+            this.ctx.fillStyle = 'rgba(56, 189, 248, 0.25)'; // Açık mavi neon
+            this.ctx.fill();
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+            this.ctx.stroke();
+            this.ctx.restore();
         }
         window.characterManager.draw(
             this.ctx,
@@ -892,6 +1214,20 @@ class GameEngine {
             1
         );
         this.ctx.globalAlpha = 1.0;
+        
+        // 1500 Puan Barajı: Kral Tacı
+        if (this.score >= 1500) {
+            this.ctx.save();
+            // Karakterin üstüne ve dönüş açısına göre tacı çiz
+            this.ctx.translate(this.player.x, this.player.y);
+            this.ctx.rotate(this.player.angle);
+            this.ctx.translate(0, -this.player.radius - 12);
+            this.ctx.font = '24px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText('👑', 0, 0);
+            this.ctx.restore();
+        }
 
         this.ctx.restore();
     }

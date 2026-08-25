@@ -18,6 +18,7 @@ const i18n = {
         menuSound: "🔊 Ses Açık",
         // HUD
         hudScoreLabel: "SKOR",
+        hudGoldLabel: "ALTIN",
         hudBestScoreLabel: "REKOR",
         hudLevelLabel: "SEVİYE",
         btnMath: "🧠 Soru Çöz (+1 Can)",
@@ -142,6 +143,7 @@ const i18n = {
         menuSound: "🔊 Sound On",
         // HUD
         hudScoreLabel: "SCORE",
+        hudGoldLabel: "GOLD",
         hudBestScoreLabel: "BEST",
         hudLevelLabel: "LEVEL",
         btnMath: "🧠 Answer (+1 Life)",

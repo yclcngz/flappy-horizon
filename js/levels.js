@@ -438,28 +438,68 @@ class LevelManager {
         ctx.strokeRect(x - capOverhang, capY, w + (capOverhang * 2), capHeight);
     }
 
-    // ÖZEL BONUS HALKA (RING) ÇİZİMİ
-    drawRing(ctx, x, centerY, radius = 24, passed = false) {
-        const lvl = this.getCurrentLevel();
-        const pulse = Math.sin(Date.now() * 0.008) * 3;
-
+    // ÖZEL TOPLANABİLİR EŞYA (COLLECTIBLE) ÇİZİMİ
+    drawCollectible(ctx, x, y, radius, type) {
         ctx.save();
-        ctx.translate(x, centerY);
-        ctx.strokeStyle = passed ? '#4ade80' : lvl.ringColor;
-        ctx.lineWidth = 5;
-        ctx.shadowColor = ctx.strokeStyle;
-        ctx.shadowBlur = passed ? 16 : 12;
+        ctx.translate(x, y);
 
-        // Dış halka
-        ctx.beginPath();
-        ctx.ellipse(0, 0, radius * 0.4 + pulse, radius + pulse, 0, 0, Math.PI * 2);
-        ctx.stroke();
-
-        // İç halka parlama merkezi
-        ctx.fillStyle = passed ? 'rgba(74, 222, 128, 0.3)' : 'rgba(0, 247, 255, 0.2)';
-        ctx.beginPath();
-        ctx.ellipse(0, 0, (radius * 0.4 + pulse) * 0.7, (radius + pulse) * 0.7, 0, 0, Math.PI * 2);
-        ctx.fill();
+        const pulse = Math.sin(Date.now() * 0.005) * 2;
+        
+        if (type === 'gold') {
+            // Altın sikke (Dönen para görünümü)
+            const width = radius * 0.7 * Math.abs(Math.cos(Date.now() * 0.003));
+            ctx.fillStyle = '#fef08a'; // Açık altın
+            ctx.shadowColor = '#fbbf24';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, width + 2, radius, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#eab308'; // Koyu altın iç
+            ctx.beginPath();
+            ctx.ellipse(0, 0, width * 0.7 + 1, radius * 0.7, 0, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            // Değerli Taş (Mücevher) Çizimi (Diamond, Emerald, Ruby)
+            let mainColor, lightColor, shadowColor;
+            
+            if (type === 'diamond') {
+                mainColor = '#0ea5e9'; lightColor = '#7dd3fc'; shadowColor = '#0284c7';
+            } else if (type === 'emerald') {
+                mainColor = '#10b981'; lightColor = '#6ee7b7'; shadowColor = '#047857';
+            } else if (type === 'ruby') {
+                mainColor = '#e11d48'; lightColor = '#fda4af'; shadowColor = '#9f1239';
+            }
+            
+            ctx.shadowColor = lightColor;
+            ctx.shadowBlur = 15 + pulse * 2;
+            
+            ctx.translate(0, pulse); // Hafif yukarı aşağı süzülme
+            
+            // Altıgen / Elmas Şekli (Poligon)
+            ctx.beginPath();
+            ctx.moveTo(0, -radius);
+            ctx.lineTo(radius * 0.8, -radius * 0.2);
+            ctx.lineTo(0, radius);
+            ctx.lineTo(-radius * 0.8, -radius * 0.2);
+            ctx.closePath();
+            
+            // İç Gradient
+            const grad = ctx.createLinearGradient(0, -radius, 0, radius);
+            grad.addColorStop(0, lightColor);
+            grad.addColorStop(0.5, mainColor);
+            grad.addColorStop(1, shadowColor);
+            ctx.fillStyle = grad;
+            ctx.fill();
+            
+            // Parlama Çizgileri
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, -radius);
+            ctx.lineTo(0, radius);
+            ctx.stroke();
+        }
 
         ctx.restore();
     }
