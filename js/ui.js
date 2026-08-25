@@ -188,8 +188,36 @@ class UIManager {
             const victoryScreen = document.getElementById('victoryScreen');
             const mainMenu = document.getElementById('mainMenu');
             if (victoryScreen) victoryScreen.classList.add('hidden');
-            if (window.gameEngine) window.gameEngine.state = 'MENU';
             if (mainMenu) mainMenu.classList.remove('hidden');
+            if (window.gameEngine) window.gameEngine.state = 'MENU';
+        });
+
+        // 12.A. SORU ÇÖZ (+1 CAN) - GEÇİCİ LOGIC (Faz 3'te modal açılacak)
+        bindButton('btnMathQuestion', () => {
+            if (window.gameEngine && window.gameEngine.lives < window.gameEngine.maxLives && window.gameEngine.extraLifeCooldown <= 0) {
+                // Şimdilik sadece test için direkt can veriyoruz ve cooldown ekliyoruz.
+                window.gameEngine.lives++;
+                window.gameEngine.extraLifeCooldown = 5; // Sonraki soru için 5 skor uçmalı
+                window.gameEngine.updateHeartsUI();
+                window.gameEngine.updateHUD();
+                
+                // Oyunu geçici duraklat/devam ettir animasyonu
+                window.gameEngine.togglePause();
+                setTimeout(() => window.gameEngine.togglePause(), 200);
+            }
+        });
+
+        // 12.B. REKLAM İZLE (+1 CAN) - GEÇİCİ LOGIC (Faz 4'te mock reklam açılacak)
+        bindButton('btnWatchAd', () => {
+            if (window.gameEngine && window.gameEngine.lives < window.gameEngine.maxLives && window.gameEngine.extraLifeCooldown <= 0) {
+                window.gameEngine.lives++;
+                window.gameEngine.extraLifeCooldown = 5;
+                window.gameEngine.updateHeartsUI();
+                window.gameEngine.updateHUD();
+                
+                window.gameEngine.togglePause();
+                setTimeout(() => window.gameEngine.togglePause(), 200);
+            }
         });
 
         // 13. SES AÇ/KAPA

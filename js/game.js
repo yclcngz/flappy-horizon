@@ -47,12 +47,16 @@ class GameEngine {
         this.bestScore = 0;
         this.ringsCollected = 0;
 
-        // Can Sistemi (3 Kalp)
-        this.lives = 3;
-        this.maxLives = 3;
+        // Can Sistemi
+        this.startLives = 3;
+        this.maxLives = 5;
+        this.lives = this.startLives;
         this.invincible = false;
         this.invincibleTimer = 0;
         this.invincibleDuration = 90; // ~1.5 saniye dokunulmazlık (60fps)
+
+        // Can Kazanma Bekleme Süresi (Cooldown)
+        this.extraLifeCooldown = 0; // Bir sonraki butonu açmak için uçulması gereken skor (başlangıçta 0)
 
         // Zafer Kontrolü
         this.victoryScore = Infinity;
@@ -169,15 +173,17 @@ class GameEngine {
         this.screenShake = 0;
 
         // Can Sistemi Sıfırla
-        this.lives = this.maxLives;
+        this.lives = this.startLives;
         this.invincible = false;
         this.invincibleTimer = 0;
         this.isVictory = false;
+        this.extraLifeCooldown = 0; // Bekleme süresi sıfırlanır
         this.updateHeartsUI();
 
         window.particleEngine.reset();
 
         document.getElementById('mainMenu').classList.add('hidden');
+        document.getElementById('welcomeProfileMenu').classList.add('hidden');
         document.getElementById('gameOverMenu').classList.add('hidden');
         document.getElementById('victoryScreen').classList.add('hidden');
         document.getElementById('inGameHUD').classList.remove('hidden');
@@ -280,6 +286,7 @@ class GameEngine {
         this.lives--;
         this.screenShake = 10;
         this.updateHeartsUI();
+        this.updateHUD();
 
         const charType = window.characterManager.selectedCharacter;
         window.soundSystem.playCharacterCrash(charType);
@@ -489,7 +496,14 @@ class GameEngine {
             // Skor Sayımı
             if (!obs.passed && obs.x + obs.width < this.player.x) {
                 obs.passed = true;
-                this.score += obs.isWalled ? 3 : 1; // Kapalı sütun = 3 puan bonus
+                const points = obs.isWalled ? 3 : 1;
+                this.score += points;
+                
+                // Can Kazanma Cooldown'ını düşür
+                if (this.extraLifeCooldown > 0) {
+                    this.extraLifeCooldown = Math.max(0, this.extraLifeCooldown - points);
+                }
+
                 window.soundSystem.playScore();
                 this.updateHUD();
             }
@@ -669,6 +683,38 @@ class GameEngine {
         document.getElementById('liveScore').innerText = this.score;
         document.getElementById('liveBestScore').innerText = Math.max(this.score, this.bestScore);
         document.getElementById('liveLevelName').innerText = window.levelManager.getCurrentLevel().name;
+        
+        // Ekstra Can Butonlarını Güncelle
+        const btnMath = document.getElementById('btnMathQuestion');
+        const btnAd = document.getElementById('btnWatchAd');
+        
+        if (btnMath && btnAd) {
+            // Eğer can full ise butonlar çalışmaz (pasif)
+            if (this.lives >= this.maxLives) {
+                btnMath.disabled = true;
+                btnAd.disabled = true;
+                btnMath.innerText = "🧠 Can Full";
+                btnAd.innerText = "📺 Can Full";
+                btnMath.style.opacity = "0.5";
+                btnAd.style.opacity = "0.5";
+            } else if (this.extraLifeCooldown > 0) {
+                // Cooldown varsa butonlar pasif
+                btnMath.disabled = true;
+                btnAd.disabled = true;
+                btnMath.innerText = `🧠 Soru İçin ${this.extraLifeCooldown} Puan`;
+                btnAd.innerText = `📺 Reklam İçin ${this.extraLifeCooldown} Puan`;
+                btnMath.style.opacity = "0.5";
+                btnAd.style.opacity = "0.5";
+            } else {
+                // Kullanıma hazır
+                btnMath.disabled = false;
+                btnAd.disabled = false;
+                btnMath.innerText = "🧠 Soru Çöz (+1 Can)";
+                btnAd.innerText = "📺 Reklam İzle (+1 Can)";
+                btnMath.style.opacity = "1";
+                btnAd.style.opacity = "1";
+            }
+        }
     }
 
     // Skor bazlı otomatik arka plan değişimi
