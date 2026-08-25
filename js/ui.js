@@ -431,8 +431,8 @@ class LeaderboardManager {
             container.innerHTML = this.buildTableHTML();
         }
 
-        // Firebase'den en yüksek 10 skoru çek (Sondan başa, skor sırasına göre)
-        this.db.orderByChild('score').limitToLast(10).once('value', (snapshot) => {
+        // Son 100 skoru getir (skora göre küçükten büyüğe sıralar, ters çevireceğiz)
+        this.db.orderByChild('score').limitToLast(100).once('value').then((snapshot) => {
             this.isLoading = false;
             const data = [];
             snapshot.forEach((childSnapshot) => {
@@ -449,7 +449,7 @@ class LeaderboardManager {
                     container.innerHTML = this.buildTableHTML();
                 }
             }
-        }, (error) => {
+        }).catch((error) => {
             console.error("Firebase'den veriler okunamadı:", error);
             this.isLoading = false;
             if (callback) callback();
@@ -458,7 +458,7 @@ class LeaderboardManager {
 
     isTop10(score) {
         if (score <= 0) return false;
-        if (!this.scores || this.scores.length < 10) return true;
+        if (!this.scores || this.scores.length < 100) return true; // 100 kişiden az varsa direkt listeye girer
         return score > this.scores[this.scores.length - 1].score;
     }
 
