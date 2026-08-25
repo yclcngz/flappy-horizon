@@ -120,6 +120,16 @@ class GameEngine {
             e.preventDefault();
             this.handleAction();
         });
+        
+        // Pause Overlay'e tıklanınca devam et (Mobil için)
+        const pauseOverlay = document.getElementById('pauseOverlay');
+        if (pauseOverlay) {
+            pauseOverlay.addEventListener('click', () => {
+                if (this.state === 'PAUSED') {
+                    this.togglePause();
+                }
+            });
+        }
     }
 
     handleAction() {
@@ -356,8 +366,33 @@ class GameEngine {
             this.state = 'PAUSED';
             document.getElementById('pauseOverlay').classList.remove('hidden');
         } else if (this.state === 'PAUSED') {
-            this.state = 'PLAYING';
             document.getElementById('pauseOverlay').classList.add('hidden');
+            this.state = 'COUNTDOWN';
+            
+            const countdownOverlay = document.getElementById('countdownOverlay');
+            const countdownText = document.getElementById('countdownText');
+            countdownOverlay.classList.remove('hidden');
+            
+            let count = 3;
+            countdownText.innerText = count;
+            
+            // Eğer ses varsa ufak bip çalınabilir
+            if (window.soundSystem) window.soundSystem.playRing();
+            
+            const timer = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownText.innerText = count;
+                    if (window.soundSystem) window.soundSystem.playRing();
+                } else {
+                    clearInterval(timer);
+                    countdownOverlay.classList.add('hidden');
+                    this.state = 'PLAYING';
+                    
+                    // Geri sayım bittiğinde hemen tıklama algılamasın diye
+                    this.player.isFlapping = false; 
+                }
+            }, 1000);
         }
     }
 
