@@ -268,7 +268,7 @@ class UIManager {
                             resultDiv.innerText = "❌ YANLIŞ! 10 SKOR UÇMALISIN.";
                             resultDiv.style.color = "#f87171";
                             resultDiv.classList.remove('hidden');
-                            if (window.soundSystem) window.soundSystem.playCrash(); // Veya özel ses
+                            if (window.soundSystem) window.soundSystem.playCharacterCrash(window.gameEngine ? window.gameEngine.selectedCharacter : 'drone');
                             
                             window.gameEngine.extraLifeCooldown = 10;
                         }
