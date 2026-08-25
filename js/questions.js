@@ -108,6 +108,106 @@ window.questionBank = [
         questionText: "Otobüste 45 yolcu vardı. Durakta 12 kişi indi, 5 kişi bindi. Otobüste kaç yolcu oldu?",
         options: ["33", "38", "40", "43"],
         correctAnswerIndex: 1
+    },
+    
+    // --- 3. SINIF MATEMATİK SORULARI ---
+    {
+        id: "TR_3_001",
+        country: "TR", grade: "3", topic: "Çarpma",
+        questionText: "7 x 8 işleminin sonucu kaçtır?",
+        options: ["48", "54", "56", "64"], correctAnswerIndex: 2
+    },
+    {
+        id: "TR_3_002",
+        country: "TR", grade: "3", topic: "Bölme",
+        questionText: "36 sayısını 4'e bölersek bölüm kaç olur?",
+        options: ["7", "8", "9", "10"], correctAnswerIndex: 2
+    },
+    {
+        id: "TR_3_003",
+        country: "TR", grade: "3", topic: "Kesirler",
+        questionText: "Bir bütün pizzayı 4 eşit parçaya bölersek, bir parçasına ne ad verilir?",
+        options: ["Yarım", "Çeyrek", "Bütün", "Dilim"], correctAnswerIndex: 1
+    },
+    
+    // --- 4. SINIF MATEMATİK SORULARI ---
+    {
+        id: "TR_4_001",
+        country: "TR", grade: "4", topic: "Dört İşlem",
+        questionText: "125 x 4 işleminin sonucu kaçtır?",
+        options: ["400", "450", "500", "600"], correctAnswerIndex: 2
+    },
+    {
+        id: "TR_4_002",
+        country: "TR", grade: "4", topic: "Alan Ölçme",
+        questionText: "Bir kenarı 5 cm olan karenin alanı kaç santimetrekaredir?",
+        options: ["10", "20", "25", "50"], correctAnswerIndex: 2
+    },
+    {
+        id: "TR_4_003",
+        country: "TR", grade: "4", topic: "Kesirler",
+        questionText: "3/8 ile 2/8'i toplarsak sonuç ne olur?",
+        options: ["5/8", "6/8", "1/8", "5/16"], correctAnswerIndex: 0
+    },
+
+    // --- 5. SINIF MATEMATİK SORULARI ---
+    {
+        id: "TR_5_001",
+        country: "TR", grade: "5", topic: "Üslü İfadeler",
+        questionText: "5'in karesi (5²) kaçtır?",
+        options: ["10", "15", "20", "25"], correctAnswerIndex: 3
+    },
+    {
+        id: "TR_5_002",
+        country: "TR", grade: "5", topic: "Ondalık Gösterim",
+        questionText: "1/4 kesrinin ondalık gösterimi aşağıdakilerden hangisidir?",
+        options: ["0.20", "0.25", "0.40", "0.50"], correctAnswerIndex: 1
+    },
+    {
+        id: "TR_5_003",
+        country: "TR", grade: "5", topic: "Yüzdeler",
+        questionText: "100 TL'nin %20'si kaç TL'dir?",
+        options: ["10", "20", "40", "80"], correctAnswerIndex: 1
+    },
+
+    // --- 6. SINIF MATEMATİK SORULARI ---
+    {
+        id: "TR_6_001",
+        country: "TR", grade: "6", topic: "İşlem Önceliği",
+        questionText: "10 + 2 x 5 işleminin sonucu kaçtır?",
+        options: ["20", "60", "25", "17"], correctAnswerIndex: 0
+    },
+    {
+        id: "TR_6_002",
+        country: "TR", grade: "6", topic: "Çarpanlar",
+        questionText: "Aşağıdakilerden hangisi asal sayıdır?",
+        options: ["9", "12", "15", "17"], correctAnswerIndex: 3
+    },
+    {
+        id: "TR_6_003",
+        country: "TR", grade: "6", topic: "Tam Sayılar",
+        questionText: "-5 ile +3'ün toplamı kaçtır?",
+        options: ["-8", "-2", "2", "8"], correctAnswerIndex: 1
+    },
+
+    // --- 7. SINIF MATEMATİK SORULARI ---
+    {
+        id: "TR_7_001",
+        country: "TR", grade: "7", topic: "Rasyonel Sayılar",
+        questionText: "(1/2) + (1/3) işleminin sonucu kaçtır?",
+        options: ["2/5", "5/6", "1/6", "3/5"], correctAnswerIndex: 1
+    },
+    {
+        id: "TR_7_002",
+        country: "TR", grade: "7", topic: "Denklemler",
+        questionText: "2x + 4 = 10 denkleminde x kaçtır?",
+        options: ["2", "3", "4", "5"], correctAnswerIndex: 1
+    },
+    {
+        id: "TR_7_003",
+        country: "TR", grade: "7", topic: "Oran-Orantı",
+        questionText: "Bir araç 2 saatte 160 km yol gidiyorsa, 3 saatte kaç km gider?",
+        options: ["200", "240", "280", "320"], correctAnswerIndex: 1
     }
 ];
 
