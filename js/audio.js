@@ -669,6 +669,38 @@ class SoundSystem {
         });
     }
 
+    playPowerUp() {
+        if (this.muted || this.sfxMuted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        // Çılgın ve havalı bir güçlenme sesi (sweep-up)
+        osc1.type = 'square';
+        osc1.frequency.setValueAtTime(300, now);
+        osc1.frequency.exponentialRampToValueAtTime(1200, now + 0.3);
+
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(150, now);
+        osc2.frequency.exponentialRampToValueAtTime(600, now + 0.3);
+
+        gain.gain.setValueAtTime(0.3 * this.sfxVolume, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.3);
+
+        osc1.connect(gain);
+        osc2.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.3);
+        osc2.stop(now + 0.3);
+    }
+
     playGameOver() {
         if (this.muted || this.sfxMuted) return;
         this.init();
