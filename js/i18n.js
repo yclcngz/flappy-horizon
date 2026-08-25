@@ -10,10 +10,13 @@ const i18n = {
         // Menü
         btnPlay: "🚀 UÇUŞA BAŞLA",
         btnGarage: "🔧 KARAKTER ATÖLYESİ",
+        btnLevels: "🌍 SEVİYE VE DÜNYALAR",
         btnLeaderboard: "🏆 LİDERLİK TABLOSU",
+        menuControls: "🖱️ Tıkla • ⌨️ Boşluk • 📱 Ekrana Dokun",
+        menuSound: "🔊 Ses Açık",
         // HUD
-        hudScore: "SKOR",
-        hudLevel: "SEVİYE",
+        hudScoreLabel: "SKOR",
+        hudLevelLabel: "SEVİYE",
         btnMath: "🧠 Soru Çöz (+1 Can)",
         btnAd: "📺 Reklam İzle (+1 Can)",
         btnMathCooldown: "🧠 Soru İçin {val} Puan",
@@ -42,7 +45,19 @@ const i18n = {
         // Tablo
         thRank: "SIRA",
         thPilot: "PİLOT & KARAKTER",
-        thScore: "SKOR"
+        thScore: "SKOR",
+        // Game Over
+        goTitle: "GÖREV SONLANDI",
+        goNewRecord: "✨ YENİ REKOR! ✨",
+        goScore: "TOPLANAN SKOR",
+        goBestScore: "EN YÜKSEK REKOR",
+        goMedal: "KAZANILAN MADALYA",
+        btnRestart: "🔄 TEKRAR UÇ",
+        btnGoLeaderboard: "🏆 LİDERLİK TABLOSU",
+        btnBackMenu: "🏠 ANA MENÜ",
+        // Pause
+        pauseTitle: "OYUN DURAKLATILDI",
+        pauseHint: "Devam etmek için ekrana dokun"
     },
     en: {
         profileTitle: "PILOT PROFILE",
@@ -53,9 +68,12 @@ const i18n = {
         btnSaveProfile: "SAVE AND START",
         btnPlay: "🚀 START FLIGHT",
         btnGarage: "🔧 GARAGE",
+        btnLevels: "🌍 WORLDS & LEVELS",
         btnLeaderboard: "🏆 LEADERBOARD",
-        hudScore: "SCORE",
-        hudLevel: "LEVEL",
+        menuControls: "🖱️ Click • ⌨️ Space • 📱 Tap Screen",
+        menuSound: "🔊 Sound On",
+        hudScoreLabel: "SCORE",
+        hudLevelLabel: "LEVEL",
         btnMath: "🧠 Answer (+1 Life)",
         btnAd: "📺 Watch Ad (+1 Life)",
         btnMathCooldown: "🧠 Need {val} Score",
@@ -81,7 +99,17 @@ const i18n = {
         gradeUS5: "Grade 5 (US)",
         thRank: "RANK",
         thPilot: "PILOT & CHARACTER",
-        thScore: "SCORE"
+        thScore: "SCORE",
+        goTitle: "MISSION ENDED",
+        goNewRecord: "✨ NEW RECORD! ✨",
+        goScore: "TOTAL SCORE",
+        goBestScore: "BEST SCORE",
+        goMedal: "MEDAL EARNED",
+        btnRestart: "🔄 FLY AGAIN",
+        btnGoLeaderboard: "🏆 LEADERBOARD",
+        btnBackMenu: "🏠 MAIN MENU",
+        pauseTitle: "GAME PAUSED",
+        pauseHint: "Tap screen to continue"
     }
 };
 

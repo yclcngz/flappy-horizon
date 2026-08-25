@@ -774,12 +774,15 @@ class LeaderboardManager {
     }
 
     buildTableHTML() {
+        const lang = window.currentLang || 'tr';
+        const t = window.i18n ? window.i18n[lang] : window.i18n['tr'];
+
         if (this.isLoading) {
             return `
                 <div class="leaderboard-empty" style="padding: 30px 15px; text-align: center; color: rgba(255,255,255,0.7); font-family: 'Outfit', sans-serif;">
                     <div style="font-size: 2.2rem; margin-bottom: 8px;">⏳</div>
-                    <div style="font-weight: 700; font-size: 1.15rem; color: #ffd54f; margin-bottom: 4px;">Sunucuya Bağlanılıyor...</div>
-                    <div style="font-size: 0.88rem; opacity: 0.7;">Gerçek zamanlı küresel skorlar yükleniyor</div>
+                    <div style="font-weight: 700; font-size: 1.15rem; color: #ffd54f; margin-bottom: 4px;">${lang === 'tr' ? 'Sunucuya Bağlanılıyor...' : 'Connecting to Server...'}</div>
+                    <div style="font-size: 0.88rem; opacity: 0.7;">${lang === 'tr' ? 'Gerçek zamanlı küresel skorlar yükleniyor' : 'Loading real-time global scores'}</div>
                 </div>
             `;
         }
@@ -788,8 +791,8 @@ class LeaderboardManager {
             return `
                 <div class="leaderboard-empty" style="padding: 30px 15px; text-align: center; color: rgba(255,255,255,0.7); font-family: 'Outfit', sans-serif;">
                     <div style="font-size: 2.2rem; margin-bottom: 8px;">🏆</div>
-                    <div style="font-weight: 700; font-size: 1.15rem; color: #ffd54f; margin-bottom: 4px;">Henüz Kayıtlı Skor Yok</div>
-                    <div style="font-size: 0.88rem; opacity: 0.7;">İlk uçuşunu yap, rekor kır ve adını 1. sıraya yazdır!</div>
+                    <div style="font-weight: 700; font-size: 1.15rem; color: #ffd54f; margin-bottom: 4px;">${lang === 'tr' ? 'Henüz Kayıtlı Skor Yok' : 'No Scores Yet'}</div>
+                    <div style="font-size: 0.88rem; opacity: 0.7;">${lang === 'tr' ? 'İlk uçuşunu yap, rekor kır ve adını 1. sıraya yazdır!' : 'Make your first flight and take the #1 spot!'}</div>
                 </div>
             `;
         }
@@ -805,9 +808,9 @@ class LeaderboardManager {
             <table class="leaderboard-table">
                 <thead>
                     <tr>
-                        <th style="width:44px; text-align:center;">SIRA</th>
-                        <th>PİLOT & KARAKTER</th>
-                        <th style="text-align:right;">SKOR</th>
+                        <th style="width:44px; text-align:center;">${t ? t.thRank : 'SIRA'}</th>
+                        <th>${t ? t.thPilot : 'PİLOT & KARAKTER'}</th>
+                        <th style="text-align:right;">${t ? t.thScore : 'SKOR'}</th>
                     </tr>
                 </thead>
                 <tbody>

@@ -23,7 +23,7 @@
         <div id="inGameHUD" class="hud-overlay hidden">
             <div class="hud-top">
                 <div class="hud-stat score-box">
-                    <span class="hud-label">SKOR</span>
+                    <span class="hud-label" data-i18n="hudScoreLabel">SKOR</span>
                     <span id="liveScore" class="hud-val">0</span>
                 </div>
                 <div class="hud-center">
@@ -121,7 +121,7 @@
                 <button id="btnOpenGarage" class="btn btn-secondary" data-i18n="btnGarage">
                     <span class="btn-icon">🛠️</span> KARAKTER ATÖLYESİ
                 </button>
-                <button id="btnOpenLevels" class="btn btn-tertiary">
+                <button id="btnOpenLevels" class="btn btn-tertiary" data-i18n="btnLevels">
                     <span class="btn-icon">🌍</span> SEVİYE VE DÜNYALAR
                 </button>
                 <button id="btnOpenLeaderboard" class="btn btn-leaderboard" data-i18n="btnLeaderboard">
@@ -130,44 +130,44 @@
             </div>
 
             <div class="menu-footer">
-                <div class="controls-hint">
+                <div class="controls-hint" data-i18n="menuControls">
                     <span>🖱️ Tıkla</span> • <span>⌨️ Boşluk</span> • <span>📱 Ekrana Dokun</span>
                 </div>
-                <button class="btn-sound-toggle sound-pill-btn">🔊 Ses Açık</button>
+                <button class="btn-sound-toggle sound-pill-btn" data-i18n="menuSound">🔊 Ses Açık</button>
             </div>
         </div>
 
         <!-- Game Over Ekranı -->
         <div id="gameOverMenu" class="menu-overlay hidden">
             <div class="game-over-box">
-                <h2 class="game-over-title">GÖREV SONLANDI</h2>
-                <div id="newRecordBadge" class="new-record-badge hidden">✨ YENİ REKOR! ✨</div>
+                <h2 class="game-over-title" data-i18n="goTitle">GÖREV SONLANDI</h2>
+                <div id="newRecordBadge" class="new-record-badge hidden" data-i18n="goNewRecord">✨ YENİ REKOR! ✨</div>
 
                 <div class="score-summary-card">
                     <div class="score-item">
-                        <span class="score-label">TOPLANAN SKOR</span>
+                        <span class="score-label" data-i18n="goScore">TOPLANAN SKOR</span>
                         <span id="finalScore" class="score-value">0</span>
                     </div>
                     <div class="score-divider"></div>
                     <div class="score-item">
-                        <span class="score-label">EN YÜKSEK REKOR</span>
+                        <span class="score-label" data-i18n="goBestScore">EN YÜKSEK REKOR</span>
                         <span id="finalBestScore" class="score-value highlight">0</span>
                     </div>
                 </div>
 
                 <div class="medal-section">
-                    <span class="medal-label">KAZANILAN MADALYA</span>
+                    <span class="medal-label" data-i18n="goMedal">KAZANILAN MADALYA</span>
                     <div id="medalContainer" class="medal-wrapper"></div>
                 </div>
 
                 <div class="game-over-actions">
-                    <button id="btnRestartGame" class="btn btn-primary">
+                    <button id="btnRestartGame" class="btn btn-primary" data-i18n="btnRestart">
                         <span class="btn-icon">🔄</span> TEKRAR UÇ
                     </button>
-                    <button id="btnGameOverLeaderboard" class="btn btn-secondary">
+                    <button id="btnGameOverLeaderboard" class="btn btn-secondary" data-i18n="btnGoLeaderboard">
                         <span class="btn-icon">🏆</span> LİDERLİK TABLOSU
                     </button>
-                    <button id="btnBackToMenu" class="btn btn-tertiary">
+                    <button id="btnBackToMenu" class="btn btn-tertiary" data-i18n="btnBackMenu">
                         <span class="btn-icon">🏠</span> ANA MENÜ
                     </button>
                 </div>
@@ -177,8 +177,8 @@
         <!-- Duraklatma (Pause) Menüsü -->
         <div id="pauseOverlay" class="menu-overlay hidden">
             <div class="pause-box">
-                <h2>OYUN DURAKLATILDI</h2>
-                <p>Uçuşa devam etmek için butona basın.</p>
+                <h2 data-i18n="pauseTitle">OYUN DURAKLATILDI</h2>
+                <p data-i18n="pauseHint">Devam etmek için ekrana dokun</p>
                 <button id="btnResume" class="btn btn-primary">▶️ DEVAM ET</button>
             </div>
         </div>
