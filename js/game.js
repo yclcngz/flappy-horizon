@@ -55,8 +55,13 @@ class GameEngine {
         this.invincibleDuration = 90; // ~1.5 saniye dokunulmazlık (60fps)
 
         // Zafer Kontrolü
-        this.victoryScore = 100;
+        this.victoryScore = Infinity;
         this.isVictory = false;
+
+        // Kamera Yönlendirmesi (Kademeli ve Ani Değişimler İçin)
+        this.cameraAngle = 0;
+        this.targetCameraAngle = 0;
+        this.lastRotationScore = 0; // Ani değişimleri kontrol etmek için
 
         // Efektler
         this.screenShake = 0;
@@ -144,6 +149,9 @@ class GameEngine {
         this.score = 0;
         this.ringsCollected = 0;
         this.speed = this.baseSpeed;
+        this.cameraAngle = 0;
+        this.targetCameraAngle = 0;
+        this.lastRotationScore = 0;
         this.player.y = this.height * 0.38;
         this.player.vy = -2.4;
         this.player.angle = -0.15;
@@ -308,13 +316,13 @@ class GameEngine {
         // Madalya Değerlendirmesi
         const medalContainer = document.getElementById('medalContainer');
         let medalHTML = '';
-        if (this.score >= 50) {
+        if (this.score >= 200) {
             medalHTML = '<span class="medal diamond">💎 Efsanevi Elmas</span>';
-        } else if (this.score >= 30) {
+        } else if (this.score >= 100) {
             medalHTML = '<span class="medal gold">🥇 Altın Kupa</span>';
-        } else if (this.score >= 15) {
+        } else if (this.score >= 50) {
             medalHTML = '<span class="medal silver">🥈 Gümüş Madalya</span>';
-        } else if (this.score >= 5) {
+        } else if (this.score >= 20) {
             medalHTML = '<span class="medal bronze">🥉 Bronz Rozet</span>';
         } else {
             medalHTML = '<span class="medal none">🎖️ Çaylak Uçucu</span>';
@@ -368,14 +376,15 @@ class GameEngine {
         if (this.state !== 'PLAYING') return;
 
         // Fizik & Hızlanma (Kademeli Zorluk - Yerçekimi SABİT)
-        this.speed = this.baseSpeed + Math.min(this.score * 0.04, 1.8);
-        const currentGap = Math.max(140, 170 - this.score * 0.6);
+        this.speed = this.baseSpeed + Math.min(this.score * 0.02, 1.8);
+        const currentGap = Math.max(140, 170 - this.score * 0.3);
         this.gapSize = currentGap;
-        const currentInterval = Math.max(105, 135 - this.score * 0.6);
+        const currentInterval = Math.max(105, 135 - this.score * 0.3);
         this.obstacleInterval = currentInterval;
 
         // Skor bazlı otomatik arka plan değişimi
         this.updateAutoLevel();
+        this.updateCameraRotation();
 
         // Zafer kontrolü
         this.checkVictory();
@@ -579,7 +588,7 @@ class GameEngine {
         // Açık kalma süresi: Karakter geçişi + %50 güvenlik payı
         const openDuration = framesToCross + Math.floor(framesToCross * 0.5);
         // Kapalı kalma süresi: Kısa ve hıza bağlı (ileri seviyelerde zorluk)
-        const closeDuration = Math.max(25, Math.floor(40 - this.score * 0.3));
+        const closeDuration = Math.max(25, Math.floor(40 - this.score * 0.15));
 
         // Toplam döngü süresi
         const totalCycle = openDuration + closeDuration;
@@ -660,18 +669,8 @@ class GameEngine {
 
     // Skor bazlı otomatik arka plan değişimi
     updateAutoLevel() {
-        let targetLevel = 0;
-        if (this.score >= 80) {
-            targetLevel = 4; // Mega Gemiler
-        } else if (this.score >= 60) {
-            targetLevel = 3; // Kutup Buzulları
-        } else if (this.score >= 40) {
-            targetLevel = 2; // Metropol
-        } else if (this.score >= 20) {
-            targetLevel = 1; // Alp Dağları
-        } else {
-            targetLevel = 0; // Neon Siber
-        }
+        // Her 50 puanda bir mekan değişsin ve 5 mekan arasında sonsuz döngü yapsın
+        let targetLevel = Math.floor(this.score / 50) % 5;
 
         if (window.levelManager.currentLevelIndex !== targetLevel) {
             window.levelManager.setLevel(targetLevel);
@@ -679,8 +678,57 @@ class GameEngine {
         }
     }
 
+    // Kamera yönü (Yerçekimi / Akış yönü) güncellemesi
+    updateCameraRotation() {
+        let diff = this.targetCameraAngle - this.cameraAngle;
+        // Yumuşak dönüş için en kısa yolu bul
+        while (diff > 180) diff -= 360;
+        while (diff < -180) diff += 360;
+        
+        this.cameraAngle += diff * 0.05;
+
+        if (this.state !== 'PLAYING') return;
+
+        // Seviyelere göre yön belirleme
+        if (this.score < 40) {
+            this.targetCameraAngle = 0; // Normal (Soldan Sağa)
+        } else if (this.score < 80) {
+            this.targetCameraAngle = -90; // Aşağıdan Yukarıya (Zemin sağda)
+        } else if (this.score < 120) {
+            this.targetCameraAngle = 180; // Sağdan Sola (Zemin tepede)
+        } else if (this.score < 160) {
+            this.targetCameraAngle = 90; // Yukarıdan Aşağıya (Zemin solda)
+        } else {
+            // En zor seviye: Anlık ve rastgele değişim (her 20 puanda bir)
+            if (this.score - this.lastRotationScore >= 20) {
+                const angles = [0, 90, 180, -90];
+                // Mevcut yönden farklı rastgele bir yön seç
+                let possibleAngles = angles.filter(a => a !== this.targetCameraAngle);
+                let newAngle = possibleAngles[Math.floor(Math.random() * possibleAngles.length)];
+                
+                this.targetCameraAngle = newAngle;
+                this.lastRotationScore = this.score;
+            }
+        }
+    }
+
     render() {
         this.ctx.save();
+
+        // Kamera Rotasyonu Uygulaması
+        if (Math.abs(this.cameraAngle) > 0.01) {
+            this.ctx.translate(this.width / 2, this.height / 2);
+            this.ctx.rotate(this.cameraAngle * Math.PI / 180);
+            
+            // Eğer açı 90 veya -90 dereceye yakınsa (yatay/dikey değişimi),
+            // ekranın taşmamasını sağlamak için ölçekleme uygula (440 / 680)
+            // Yumuşak geçiş için açının kosinüsü ile oranlayalım
+            const isVertical = Math.abs(Math.sin(this.cameraAngle * Math.PI / 180));
+            const scaleFactor = 1.0 - (1.0 - (this.width / this.height)) * isVertical;
+            this.ctx.scale(scaleFactor, scaleFactor);
+            
+            this.ctx.translate(-this.width / 2, -this.height / 2);
+        }
 
         // Ekran Sarsıntısı (Screen Shake)
         if (this.screenShake > 0) {
