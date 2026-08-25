@@ -208,6 +208,58 @@ window.questionBank = [
         country: "TR", grade: "7", topic: "Oran-Orantı",
         questionText: "Bir araç 2 saatte 160 km yol gidiyorsa, 3 saatte kaç km gider?",
         options: ["200", "240", "280", "320"], correctAnswerIndex: 1
+    },
+    
+    // --- 8. SINIF (LGS) MATEMATİK SORULARI ---
+    {
+        id: "TR_8_001",
+        country: "TR", grade: "8", topic: "Üslü İfadeler",
+        questionText: "2³ + 3² işleminin sonucu kaçtır?",
+        options: ["12", "14", "17", "25"], correctAnswerIndex: 2
+    },
+    {
+        id: "TR_8_002",
+        country: "TR", grade: "8", topic: "Köklü İfadeler",
+        questionText: "√16 + √9 işleminin sonucu kaçtır?",
+        options: ["5", "7", "12", "25"], correctAnswerIndex: 1
+    },
+    {
+        id: "TR_8_003",
+        country: "TR", grade: "8", topic: "Çarpanlar ve Katlar",
+        questionText: "12 ve 18 sayılarının EBOB'u kaçtır?",
+        options: ["3", "4", "6", "36"], correctAnswerIndex: 2
+    },
+    {
+        id: "TR_8_004",
+        country: "TR", grade: "8", topic: "Pisagor Bağıntısı",
+        questionText: "Dik kenarları 3 cm ve 4 cm olan dik üçgenin hipotenüsü kaç cm'dir?",
+        options: ["5", "6", "7", "25"], correctAnswerIndex: 0
+    },
+
+    // --- 12. SINIF (YKS - TYT/AYT) MATEMATİK SORULARI ---
+    {
+        id: "TR_12_001",
+        country: "TR", grade: "12", topic: "Fonksiyonlar",
+        questionText: "f(x) = 2x + 5 olduğuna göre f(3) kaçtır?",
+        options: ["8", "10", "11", "13"], correctAnswerIndex: 2
+    },
+    {
+        id: "TR_12_002",
+        country: "TR", grade: "12", topic: "Logaritma",
+        questionText: "log₂8 işleminin sonucu kaçtır?",
+        options: ["2", "3", "4", "6"], correctAnswerIndex: 1
+    },
+    {
+        id: "TR_12_003",
+        country: "TR", grade: "12", topic: "Trigonometri",
+        questionText: "sin(30°) değeri aşağıdakilerden hangisidir?",
+        options: ["1/2", "√3/2", "1", "√2/2"], correctAnswerIndex: 0
+    },
+    {
+        id: "TR_12_004",
+        country: "TR", grade: "12", topic: "Türev",
+        questionText: "f(x) = x³ + 2x fonksiyonunun türevi f'(x) nedir?",
+        options: ["2x² + 2", "3x² + 2x", "3x² + 2", "3x²"], correctAnswerIndex: 2
     }
 ];
 
