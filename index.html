@@ -61,7 +61,7 @@
                 <div class="game-logo">
                     <h1 class="logo-title">FLAPPY<br><span class="gradient-text">HORIZON</span></h1>
                 </div>
-                <p class="menu-subtitle" style="margin-top:10px; font-size:1.1rem; color: #a5b4fc;">Uçuş İzni İçin Profilini Oluştur</p>
+                <p class="menu-subtitle" data-i18n="profileSubtitle" style="margin-top:10px; font-size:1.1rem; color: #a5b4fc;">Uçuş İzni İçin Profilini Oluştur</p>
             </div>
             
             <div class="profile-form" style="width: 80%; max-width: 300px; margin: 0 auto; background: rgba(13, 20, 36, 0.8); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
@@ -82,7 +82,7 @@
                     </div>
                 </div>
                 <div class="form-group" style="margin-bottom: 15px; text-align: left;">
-                    <label style="display:block; margin-bottom: 5px; color: #818cf8; font-weight: 600; font-size: 0.9rem;">Sınıf Seviyesi</label>
+                    <label data-i18n="profileGradeLabel" style="display:block; margin-bottom: 5px; color: #818cf8; font-weight: 600; font-size: 0.9rem;">Sınıf Seviyesi</label>
                     <select id="profileGrade" style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: white; font-family: 'Outfit', sans-serif; font-size: 1rem; outline: none; border-bottom: 2px solid #4f46e5; appearance: none;">
                         <option value="1" selected>1. Sınıf</option>
                         <option value="2">2. Sınıf</option>
@@ -98,7 +98,7 @@
             </div>
 
             <div class="menu-actions" style="margin-top:25px;">
-                <button id="btnSaveProfile" class="btn btn-primary pulse-anim" style="padding: 15px 40px;">
+                <button id="btnSaveProfile" class="btn btn-primary pulse-anim" data-i18n="btnSaveProfile" style="padding: 15px 40px;">
                     KAYDET VE DEVAM ET
                 </button>
             </div>
@@ -108,7 +108,7 @@
         <div id="mainMenu" class="menu-overlay hidden">
             <div class="menu-header">
                 <div class="game-logo">
-                    <span class="logo-sub">YENİ NESİL</span>
+                    <span class="logo-sub" data-i18n="logoYeniNesil">YENİ NESİL</span>
                     <h1 class="logo-title">FLAPPY<br><span class="gradient-text">HORIZON</span></h1>
                 </div>
                 <p id="menuLevelSubtitle" class="menu-subtitle">Dünya: Neon Siber Şehir</p>
@@ -179,7 +179,7 @@
             <div class="pause-box">
                 <h2 data-i18n="pauseTitle">OYUN DURAKLATILDI</h2>
                 <p data-i18n="pauseHint">Devam etmek için ekrana dokun</p>
-                <button id="btnResume" class="btn btn-primary">▶️ DEVAM ET</button>
+                <button id="btnResume" class="btn btn-primary" data-i18n="btnResume">▶️ DEVAM ET</button>
             </div>
         </div>
 
@@ -192,22 +192,22 @@
         <div id="garageModal" class="modal-overlay hidden">
             <div class="modal-card">
                 <div class="modal-header">
-                    <h3>🛠️ Karakter Atölyesi</h3>
+                    <h3 data-i18n="modalGarageTitle">🛠️ Karakter Atölyesi</h3>
                     <button id="btnCloseGarage" class="btn-close">✕</button>
                 </div>
 
                 <!-- Canlı Önizleme Kutusu -->
                 <div class="preview-box">
                     <canvas id="previewCanvas" width="220" height="150"></canvas>
-                    <span class="preview-tag">CANLI ÖNİZLEME</span>
+                    <span class="preview-tag" data-i18n="garagePreview">CANLI ÖNİZLEME</span>
                 </div>
 
                 <!-- Karakter Seçim Sekmeleri -->
                 <div class="char-tabs">
-                    <button class="char-tab-btn active" data-char="drone">🛸 Drone</button>
-                    <button class="char-tab-btn" data-char="kartal">🦅 Kartal</button>
-                    <button class="char-tab-btn" data-char="roket">🚀 Roket</button>
-                    <button class="char-tab-btn" data-char="fuze">🎯 Füze</button>
+                    <button class="char-tab-btn active" data-char="drone" data-i18n="charDrone">🛸 Drone</button>
+                    <button class="char-tab-btn" data-char="kartal" data-i18n="charEagle">🦅 Kartal</button>
+                    <button class="char-tab-btn" data-char="roket" data-i18n="charRocket">🚀 Roket</button>
+                    <button class="char-tab-btn" data-char="fuze" data-i18n="charMissile">🎯 Füze</button>
                 </div>
 
                 <!-- Özelleştirme Ayar Panelleri -->
@@ -215,23 +215,23 @@
                     <!-- DRONE PANEL -->
                     <div id="panel_drone" class="char-config-panel">
                         <div class="control-row">
-                            <label>Gövde Modeli:</label>
+                            <label data-i18n="lblDroneBody">Gövde Modeli:</label>
                             <select id="droneModelSelect" class="form-select">
-                                <option value="quad">Quad-Rotor Klasik</option>
-                                <option value="stealth">Hexa-Stealth</option>
-                                <option value="sphere">Siber-Küre</option>
+                                <option value="quad" data-i18n="optDroneQuad">Quad-Rotor Klasik</option>
+                                <option value="stealth" data-i18n="optDroneHexa">Hexa-Stealth</option>
+                                <option value="sphere" data-i18n="optDroneSphere">Siber-Küre</option>
                             </select>
                         </div>
                         <div class="control-row">
-                            <label>Gövde Rengi:</label>
+                            <label data-i18n="lblDroneBodyColor">Gövde Rengi:</label>
                             <input type="color" id="droneBodyColor" value="#1e293b" class="color-picker">
                         </div>
                         <div class="control-row">
-                            <label>Kol & Çerçeve Rengi:</label>
+                            <label data-i18n="lblDroneArmColor">Kol & Çerçeve Rengi:</label>
                             <input type="color" id="droneAccentColor" value="#38bdf8" class="color-picker">
                         </div>
                         <div class="control-row">
-                            <label>LED & Pervane Işığı:</label>
+                            <label data-i18n="lblDroneLightColor">LED & Pervane Işığı:</label>
                             <input type="color" id="droneLightColor" value="#00f7ff" class="color-picker">
                         </div>
                     </div>
@@ -239,28 +239,28 @@
                     <!-- KARTAL PANEL -->
                     <div id="panel_kartal" class="char-config-panel hidden">
                         <div class="control-row">
-                            <label>Kartal Cinsi / Irk:</label>
+                            <label data-i18n="lblEagleSpecies">Kartal Cinsi / Irk:</label>
                             <select id="eagleSpeciesSelect" class="form-select">
-                                <option value="altin">Altın Kartal</option>
-                                <option value="sahin">Kızıl Şahin</option>
-                                <option value="akbas">Akbaş Amerikan Kartalı</option>
-                                <option value="siber">Siber Zırhlı Kartal</option>
+                                <option value="altin" data-i18n="optEagleGolden">Altın Kartal</option>
+                                <option value="sahin" data-i18n="optEagleRed">Kızıl Şahin</option>
+                                <option value="akbas" data-i18n="optEagleBald">Akbaş Amerikan Kartalı</option>
+                                <option value="siber" data-i18n="optEagleCyber">Siber Zırhlı Kartal</option>
                             </select>
                         </div>
                         <div class="control-row">
-                            <label>Gövde Tüy Rengi:</label>
+                            <label data-i18n="lblEagleBodyColor">Gövde Tüy Rengi:</label>
                             <input type="color" id="eagleBodyColor" value="#5c3818" class="color-picker">
                         </div>
                         <div class="control-row">
-                            <label>Kanat Rengi:</label>
+                            <label data-i18n="lblEagleWingColor">Kanat Rengi:</label>
                             <input type="color" id="eagleWingColor" value="#3d230d" class="color-picker">
                         </div>
                         <div class="control-row">
-                            <label>Gaga Rengi:</label>
+                            <label data-i18n="lblEagleBeakColor">Gaga Rengi:</label>
                             <input type="color" id="eagleBeakColor" value="#f59e0b" class="color-picker">
                         </div>
                         <div class="control-row">
-                            <label>Göz Işıltısı:</label>
+                            <label data-i18n="lblEagleEyeColor">Göz Işıltısı:</label>
                             <input type="color" id="eagleEyeColor" value="#fbbf24" class="color-picker">
                         </div>
                     </div>
@@ -268,32 +268,32 @@
                     <!-- ROKET PANEL -->
                     <div id="panel_roket" class="char-config-panel hidden">
                         <div class="control-row">
-                            <label>Roket Kasası:</label>
+                            <label data-i18n="lblRocketBody">Roket Kasası:</label>
                             <select id="rocketModelSelect" class="form-select">
-                                <option value="falcon">Modern Falcon</option>
-                                <option value="apollo">Klasik Apollo</option>
-                                <option value="scifi">Sci-Fi Hiper Sürücü</option>
+                                <option value="falcon" data-i18n="optRocketFalcon">Modern Falcon</option>
+                                <option value="apollo" data-i18n="optRocketApollo">Klasik Apollo</option>
+                                <option value="scifi" data-i18n="optRocketSciFi">Sci-Fi Hiper Sürücü</option>
                             </select>
                         </div>
                         <div class="control-row">
-                            <label>Gövde Rengi:</label>
+                            <label data-i18n="lblRocketBodyColor">Gövde Rengi:</label>
                             <input type="color" id="rocketBodyColor" value="#f8fafc" class="color-picker">
                         </div>
                         <div class="control-row">
-                            <label>Kanatçık Rengi:</label>
+                            <label data-i18n="lblRocketFinColor">Kanatçık Rengi:</label>
                             <input type="color" id="rocketFinColor" value="#ef4444" class="color-picker">
                         </div>
                         <div class="control-row">
-                            <label>Kokpit Cam Rengi:</label>
+                            <label data-i18n="lblRocketCockpitColor">Kokpit Cam Rengi:</label>
                             <input type="color" id="rocketCockpitColor" value="#38bdf8" class="color-picker">
                         </div>
                         <div class="control-row">
-                            <label>İtiş / Alev Türü:</label>
+                            <label data-i18n="lblRocketThrust">İtiş / Alev Türü:</label>
                             <select id="rocketFlameSelect" class="form-select">
-                                <option value="#ff5722">🔥 Klasik Turuncu Alev</option>
-                                <option value="#00f7ff">⚡ Camgöbeği Plazma</option>
-                                <option value="#a855f7">🌌 Mor Antimadde</option>
-                                <option value="#10b981">🟢 Zümrüt İyon Jet</option>
+                                <option value="#ff5722" data-i18n="optFlameClassic">🔥 Klasik Turuncu Alev</option>
+                                <option value="#00f7ff" data-i18n="optFlamePlasma">⚡ Camgöbeği Plazma</option>
+                                <option value="#a855f7" data-i18n="optFlameAntimatter">🌌 Mor Antimadde</option>
+                                <option value="#10b981" data-i18n="optFlameEmerald">🟢 Zümrüt İyon Jet</option>
                             </select>
                         </div>
                     </div>
@@ -301,28 +301,28 @@
                     <!-- FÜZE PANEL -->
                     <div id="panel_fuze" class="char-config-panel hidden">
                         <div class="control-row">
-                            <label>Gövde Kaplaması:</label>
+                            <label data-i18n="lblMissileCamo">Gövde Kaplaması:</label>
                             <select id="missileCamoSelect" class="form-select">
-                                <option value="cyber">Siberpunk Neon</option>
-                                <option value="stealth">Gizli Hayalet (Stealth)</option>
-                                <option value="military">Askeri Taktik</option>
-                                <option value="crimson">Kızıl Harp</option>
+                                <option value="cyber" data-i18n="optMissileCyber">Siberpunk Neon</option>
+                                <option value="stealth" data-i18n="optMissileStealth">Gizli Hayalet (Stealth)</option>
+                                <option value="military" data-i18n="optMissileMilitary">Askeri Taktik</option>
+                                <option value="crimson" data-i18n="optMissileCrimson">Kızıl Harp</option>
                             </select>
                         </div>
                         <div class="control-row">
-                            <label>Gövde Rengi:</label>
+                            <label data-i18n="lblMissileBodyColor">Gövde Rengi:</label>
                             <input type="color" id="missileBodyColor" value="#18181b" class="color-picker">
                         </div>
                         <div class="control-row">
-                            <label>Harp Başlığı Rengi:</label>
+                            <label data-i18n="lblMissileWarheadColor">Harp Başlığı Rengi:</label>
                             <input type="color" id="missileWarheadColor" value="#f43f5e" class="color-picker">
                         </div>
                         <div class="control-row">
-                            <label>Yön Kanatçığı Rengi:</label>
+                            <label data-i18n="lblMissileFinColor">Yön Kanatçığı Rengi:</label>
                             <input type="color" id="missileFinColor" value="#71717a" class="color-picker">
                         </div>
                         <div class="control-row">
-                            <label>Egzoz Kıvılcım İzi:</label>
+                            <label data-i18n="lblMissileTrailColor">Egzoz Kıvılcım İzi:</label>
                             <input type="color" id="missileTrailColor" value="#ff9100" class="color-picker">
                         </div>
                     </div>
@@ -334,7 +334,7 @@
         <div id="levelModal" class="modal-overlay hidden">
             <div class="modal-card">
                 <div class="modal-header">
-                    <h3>🌍 Seviye ve Dünyalar</h3>
+                    <h3 data-i18n="modalLevelsTitle">🌍 Seviye ve Dünyalar</h3>
                     <button id="btnCloseLevels" class="btn-close">✕</button>
                 </div>
                 <div class="level-grid" id="levelGridContainer">
@@ -347,12 +347,12 @@
         <div id="nameInputModal" class="modal-overlay hidden">
             <div class="modal-card">
                 <div class="name-input-box">
-                    <h2>🏆 TOP 10'A GİRDİN!</h2>
-                    <p>İsmini girerek sıralamanı kaydet</p>
+                    <h2 data-i18n="modalTop10Title">🏆 TOP 10'A GİRDİN!</h2>
+                    <p data-i18n="modalTop10Subtitle">İsmini girerek sıralamanı kaydet</p>
                     <div id="nameInputScore" class="score-display">0</div>
                     <input type="text" id="playerNameInput" class="name-input-field" placeholder="İsmini yaz..." maxlength="12" autocomplete="off">
                     <div style="margin-top: 16px;">
-                        <button id="btnSaveName" class="btn btn-primary">💾 KAYDET</button>
+                        <button id="btnSaveName" class="btn btn-primary" data-i18n="btnSaveName">💾 KAYDET</button>
                     </div>
                 </div>
             </div>
@@ -362,7 +362,7 @@
         <div id="leaderboardModal" class="modal-overlay hidden">
             <div class="modal-card">
                 <div class="modal-header">
-                    <h3>🏆 Liderlik Tablosu</h3>
+                    <h3 data-i18n="modalLeaderboardTitle">🏆 Liderlik Tablosu</h3>
                     <button id="btnCloseLeaderboard" class="btn-close">✕</button>
                 </div>
                 <div id="leaderboardContent">
