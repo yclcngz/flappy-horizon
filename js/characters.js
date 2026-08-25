@@ -122,6 +122,60 @@ class CharacterManager {
                 break;
         }
 
+        // Bilgin Rozeti Kontrolü (10 soru bildiyse şapka çiz)
+        if (window.uiManager && window.uiManager.playerProfile && window.uiManager.playerProfile.correctAnswers >= 10) {
+            this.drawBilginBadge(ctx, type);
+        }
+
+        ctx.restore();
+    }
+
+    drawBilginBadge(ctx, type) {
+        ctx.save();
+        
+        // Karakterin türüne göre şapkanın konumunu ayarla
+        let yOffset = -22;
+        let scale = 1.0;
+        
+        if (type === 'kartal') { yOffset = -18; scale = 0.8; }
+        else if (type === 'roket') { yOffset = -30; scale = 0.9; }
+        else if (type === 'fuze') { yOffset = -25; scale = 0.8; }
+
+        ctx.translate(0, yOffset);
+        ctx.scale(scale, scale);
+
+        // Şapka Alt Tarafı (Kutu)
+        ctx.fillStyle = '#0f172a'; // Koyu mavi/siyah
+        ctx.beginPath();
+        ctx.moveTo(-10, 0);
+        ctx.lineTo(10, 0);
+        ctx.lineTo(12, 10);
+        ctx.lineTo(-12, 10);
+        ctx.fill();
+
+        // Şapka Üst Tarafı (Elmas şekli / Tahta)
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.moveTo(0, -6);
+        ctx.lineTo(16, 2);
+        ctx.lineTo(0, 10);
+        ctx.lineTo(-16, 2);
+        ctx.fill();
+
+        // Püskül İpi
+        ctx.strokeStyle = '#fbbf24'; // Altın sarısı
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(0, 2); // Ortadan
+        ctx.lineTo(14, 8); // Kenara sarkıyor
+        ctx.stroke();
+
+        // Püskül Ucu
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(15, 10, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
         ctx.restore();
     }
 
