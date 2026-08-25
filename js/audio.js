@@ -263,21 +263,22 @@ class SoundSystem {
         const gain = this.ctx.createGain();
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(420, now);
-        osc.frequency.exponentialRampToValueAtTime(220, now + 0.35);
+        osc.frequency.exponentialRampToValueAtTime(150, now + 0.45);
 
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'bandpass';
         filter.frequency.setValueAtTime(600, now);
         filter.Q.setValueAtTime(2.5, now);
 
-        gain.gain.setValueAtTime(0.40 * this.sfxVolume, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        // Ses seviyesini artırdık
+        gain.gain.setValueAtTime(0.80 * this.sfxVolume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
 
         osc.connect(filter);
         filter.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.35);
+        osc.stop(now + 0.45);
     }
 
     // Drone Çarpışma: Metal Kırılması + Elektrik Kıvılcımı
@@ -292,32 +293,32 @@ class SoundSystem {
         const hitOsc = this.ctx.createOscillator();
         const hitGain = this.ctx.createGain();
         hitOsc.type = 'sawtooth';
-        hitOsc.frequency.setValueAtTime(600, now);
-        hitOsc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
-        hitGain.gain.setValueAtTime(0.7 * this.sfxVolume, now);
-        hitGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        hitOsc.frequency.setValueAtTime(400, now);
+        hitOsc.frequency.exponentialRampToValueAtTime(40, now + 0.4);
+        // Çarpışma sesini daha gürültülü yaptık
+        hitGain.gain.setValueAtTime(1.2 * this.sfxVolume, now);
+        hitGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
         hitOsc.connect(hitGain);
         hitGain.connect(this.ctx.destination);
         hitOsc.start(now);
-        hitOsc.stop(now + 0.3);
+        hitOsc.stop(now + 0.4);
 
-        // 2. Kısa Devre & Kıvılcım (Electric Zap)
+        // 2. Elektrik Kıvılcımı (Noise)
         if (!this.noiseBuffer) this.createNoiseBuffer();
         if (this.noiseBuffer) {
             const noise = this.ctx.createBufferSource();
             noise.buffer = this.noiseBuffer;
-            const filter = this.ctx.createBiquadFilter();
-            filter.type = 'bandpass';
-            filter.frequency.setValueAtTime(3200, now);
-            filter.Q.setValueAtTime(5.0, now);
+            const noiseFilter = this.ctx.createBiquadFilter();
+            noiseFilter.type = 'highpass';
+            noiseFilter.frequency.setValueAtTime(1000, now);
             const noiseGain = this.ctx.createGain();
-            noiseGain.gain.setValueAtTime(0.6 * this.sfxVolume, now);
-            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-            noise.connect(filter);
-            filter.connect(noiseGain);
+            noiseGain.gain.setValueAtTime(0.8 * this.sfxVolume, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+            noise.connect(noiseFilter);
+            noiseFilter.connect(noiseGain);
             noiseGain.connect(this.ctx.destination);
             noise.start(now);
-            noise.stop(now + 0.45);
+            noise.stop(now + 0.3);
         }
     }
 
