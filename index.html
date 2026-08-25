@@ -36,10 +36,10 @@
                         <span class="heart" data-heart="5">❤️</span>
                     </div>
                     <div class="extra-life-actions" style="margin-top: 5px; display:flex; gap: 8px; justify-content: center; pointer-events: auto;">
-                        <button id="btnMathQuestion" class="btn btn-sm btn-primary" style="font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; pointer-events: auto;" disabled>
+                        <button id="btnMathQuestion" class="btn btn-sm btn-primary" style="font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; pointer-events: auto;" data-i18n="btnMath" disabled>
                             🧠 Soru Çöz (+1 Can)
                         </button>
-                        <button id="btnWatchAd" class="btn btn-sm btn-secondary" style="font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; pointer-events: auto;" disabled>
+                        <button id="btnWatchAd" class="btn btn-sm btn-secondary" style="font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; pointer-events: auto;" data-i18n="btnAd" disabled>
                             📺 Reklam İzle (+1 Can)
                         </button>
                     </div>
@@ -65,18 +65,21 @@
             </div>
             
             <div class="profile-form" style="width: 80%; max-width: 300px; margin: 0 auto; background: rgba(13, 20, 36, 0.8); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
-                <div class="form-group" style="margin-bottom: 15px; text-align: left;">
-                    <label style="display:block; margin-bottom: 5px; color: #818cf8; font-weight: 600; font-size: 0.9rem;">Pilot Adı</label>
-                    <input type="text" id="profileName" placeholder="İsmini yaz..." maxlength="12" style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: white; font-family: 'Outfit', sans-serif; font-size: 1rem; outline: none; border-bottom: 2px solid #4f46e5;">
-                </div>
-                <div class="form-group" style="margin-bottom: 15px; text-align: left;">
-                    <label style="display:block; margin-bottom: 5px; color: #818cf8; font-weight: 600; font-size: 0.9rem;">Ülke (Müfredat)</label>
-                    <select id="profileCountry" style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: white; font-family: 'Outfit', sans-serif; font-size: 1rem; outline: none; border-bottom: 2px solid #4f46e5; appearance: none;">
-                        <option value="TR" selected>🇹🇷 Türkiye (TR)</option>
-                        <option value="US" disabled>🇺🇸 ABD (Yakında)</option>
-                        <option value="IN" disabled>🇮🇳 Hindistan (Yakında)</option>
-                        <option value="ES" disabled>🇪🇸 İspanya (Yakında)</option>
-                    </select>
+                <div style="margin-bottom: 25px; text-align: left;">
+                    <div style="margin-bottom: 15px;">
+                        <label data-i18n="profileNameLabel" style="display:block; margin-bottom: 5px; color: #818cf8; font-weight: 600; font-size: 0.9rem;">Oyuncu Adı (Zorunlu)</label>
+                        <input type="text" id="profileName" data-i18n="profileNameHolder" placeholder="Örn: Alp" style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: white; font-family: 'Outfit', sans-serif; font-size: 1rem; outline: none; border-bottom: 2px solid #4f46e5;">
+                    </div>
+                    
+                    <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                        <div style="flex: 1;">
+                            <label data-i18n="profileCountryLabel" style="display:block; margin-bottom: 5px; color: #818cf8; font-weight: 600; font-size: 0.9rem;">Ülke / Dil</label>
+                            <select id="profileCountry" style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: white; font-family: 'Outfit', sans-serif; font-size: 1rem; outline: none; border-bottom: 2px solid #4f46e5; appearance: none;">
+                                <option value="TR" selected>🇹🇷 Türkiye (TR)</option>
+                                <option value="US">🇺🇸 English (US)</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
                 <div class="form-group" style="margin-bottom: 15px; text-align: left;">
                     <label style="display:block; margin-bottom: 5px; color: #818cf8; font-weight: 600; font-size: 0.9rem;">Sınıf Seviyesi</label>
@@ -112,16 +115,16 @@
             </div>
 
             <div class="menu-actions">
-                <button id="btnStartGame" class="btn btn-primary pulse-anim">
+                <button id="btnStartGame" class="btn btn-primary pulse-anim" data-i18n="btnPlay">
                     <span class="btn-icon">🚀</span> HEMEN BAŞLA
                 </button>
-                <button id="btnOpenGarage" class="btn btn-secondary">
+                <button id="btnOpenGarage" class="btn btn-secondary" data-i18n="btnGarage">
                     <span class="btn-icon">🛠️</span> KARAKTER ATÖLYESİ
                 </button>
                 <button id="btnOpenLevels" class="btn btn-tertiary">
                     <span class="btn-icon">🌍</span> SEVİYE VE DÜNYALAR
                 </button>
-                <button id="btnOpenLeaderboard" class="btn btn-leaderboard">
+                <button id="btnOpenLeaderboard" class="btn btn-leaderboard" data-i18n="btnLeaderboard">
                     <span class="btn-icon">🏆</span> LİDERLİK TABLOSU
                 </button>
             </div>
@@ -429,6 +432,7 @@
     <script src="js/characters.js?v=10"></script>
     <script src="js/levels.js?v=10"></script>
     <script src="js/questions.js?v=1"></script>
+    <script src="js/i18n.js?v=1"></script>
     <script src="js/game.js?v=10"></script>
     <script src="js/ui.js?v=10"></script>
 </body>

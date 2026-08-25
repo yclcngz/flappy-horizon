@@ -724,28 +724,29 @@ class GameEngine {
         const btnAd = document.getElementById('btnWatchAd');
         
         if (btnMath && btnAd) {
+            const lang = window.currentLang || 'tr';
             // Eğer can full ise butonlar çalışmaz (pasif)
             if (this.lives >= this.maxLives) {
                 btnMath.disabled = true;
                 btnAd.disabled = true;
-                btnMath.innerText = "🧠 Can Full";
-                btnAd.innerText = "📺 Can Full";
+                btnMath.innerText = window.i18n ? window.i18n[lang].btnMathFull : "🧠 Can Full";
+                btnAd.innerText = window.i18n ? window.i18n[lang].btnAdFull : "📺 Can Full";
                 btnMath.style.opacity = "0.5";
                 btnAd.style.opacity = "0.5";
             } else if (this.extraLifeCooldown > 0) {
                 // Cooldown varsa butonlar pasif
                 btnMath.disabled = true;
                 btnAd.disabled = true;
-                btnMath.innerText = `🧠 Soru İçin ${this.extraLifeCooldown} Puan`;
-                btnAd.innerText = `📺 Reklam İçin ${this.extraLifeCooldown} Puan`;
+                btnMath.innerText = window.i18n ? window.i18n[lang].btnMathCooldown.replace('{val}', this.extraLifeCooldown) : `🧠 Soru İçin ${this.extraLifeCooldown} Puan`;
+                btnAd.innerText = window.i18n ? window.i18n[lang].btnAdCooldown.replace('{val}', this.extraLifeCooldown) : `📺 Reklam İçin ${this.extraLifeCooldown} Puan`;
                 btnMath.style.opacity = "0.5";
                 btnAd.style.opacity = "0.5";
             } else {
                 // Kullanıma hazır
                 btnMath.disabled = false;
                 btnAd.disabled = false;
-                btnMath.innerText = "🧠 Soru Çöz (+1 Can)";
-                btnAd.innerText = "📺 Reklam İzle (+1 Can)";
+                btnMath.innerText = window.i18n ? window.i18n[lang].btnMath : "🧠 Soru Çöz (+1 Can)";
+                btnAd.innerText = window.i18n ? window.i18n[lang].btnAd : "📺 Reklam İzle (+1 Can)";
                 btnMath.style.opacity = "1";
                 btnAd.style.opacity = "1";
             }

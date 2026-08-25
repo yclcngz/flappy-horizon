@@ -117,6 +117,15 @@ class UIManager {
                 window.leaderboardManager.showLeaderboard();
             }
         });
+        // 4.5. DİL / ÜLKE DEĞİŞİMİ
+        const profileCountry = document.getElementById('profileCountry');
+        if (profileCountry) {
+            profileCountry.addEventListener('change', (e) => {
+                let lang = 'tr';
+                if (e.target.value === 'US') lang = 'en';
+                if (window.setLanguage) window.setLanguage(lang);
+            });
+        }
 
         // 5. KARAKTER ATÖLYESİ AÇ
         bindButton('btnOpenGarage', () => {
