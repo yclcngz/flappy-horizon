@@ -11,10 +11,26 @@ class UIManager {
     }
 
     initUI() {
+        this.checkUserProfile();
         this.bindMenuButtons();
         this.bindCustomizationControls();
         this.renderLevelGrid();
         this.startPreviewLoop();
+    }
+
+    checkUserProfile() {
+        const welcomeMenu = document.getElementById('welcomeProfileMenu');
+        const mainMenu = document.getElementById('mainMenu');
+        const savedProfile = localStorage.getItem('flappy_player_profile');
+        
+        if (savedProfile) {
+            if (welcomeMenu) welcomeMenu.classList.add('hidden');
+            if (mainMenu) mainMenu.classList.remove('hidden');
+            this.playerProfile = JSON.parse(savedProfile);
+        } else {
+            if (welcomeMenu) welcomeMenu.classList.remove('hidden');
+            if (mainMenu) mainMenu.classList.add('hidden');
+        }
     }
 
     bindMenuButtons() {
@@ -40,6 +56,35 @@ class UIManager {
 
             btn.addEventListener('click', execute);
         };
+
+        // 0. PROFİLİ KAYDET
+        bindButton('btnSaveProfile', () => {
+            const nameInput = document.getElementById('profileName').value.trim();
+            const countryInput = document.getElementById('profileCountry').value;
+            const gradeInput = document.getElementById('profileGrade').value;
+            
+            if (nameInput === '') {
+                alert('Lütfen uçuş izni için pilot adını gir!');
+                return;
+            }
+            
+            this.playerProfile = {
+                name: nameInput,
+                country: countryInput,
+                grade: gradeInput
+            };
+            
+            localStorage.setItem('flappy_player_profile', JSON.stringify(this.playerProfile));
+            
+            // Leaderboard'ı yeni kategoriye göre güncelle
+            if (window.leaderboardManager) {
+                window.leaderboardManager.db = firebase.database().ref(`global_leaderboard_${countryInput}_${gradeInput}`);
+                window.leaderboardManager.loadScores();
+            }
+
+            document.getElementById('welcomeProfileMenu').classList.add('hidden');
+            document.getElementById('mainMenu').classList.remove('hidden');
+        });
 
         // 1. HEMEN BAŞLA
         bindButton('btnStartGame', () => {
@@ -414,8 +459,18 @@ class LeaderboardManager {
             firebase.initializeApp(firebaseConfig);
         }
         
+        // Profil bilgisine göre kategori oluştur (Varsayılan: TR_1)
+        let lbCategory = 'TR_1';
+        try {
+            const savedProfile = localStorage.getItem('flappy_player_profile');
+            if (savedProfile) {
+                const profile = JSON.parse(savedProfile);
+                lbCategory = `${profile.country}_${profile.grade}`;
+            }
+        } catch (e) {}
+        
         // Liderlik tablosu referansı
-        this.db = firebase.database().ref('global_leaderboard_v1');
+        this.db = firebase.database().ref(`global_leaderboard_${lbCategory}`);
         
         // Oyun açılışında sessizce bir kere yükle
         this.loadScores();
@@ -488,6 +543,32 @@ class LeaderboardManager {
     showNameInput(score, isVictory = false) {
         this.pendingScore = score > 0 ? score : (window.gameEngine ? window.gameEngine.score : 0);
         this.pendingIsVictory = isVictory;
+
+        // Eğer profilde isim varsa, isim sorma, direkt kaydet!
+        let profileName = null;
+        try {
+            const savedProfile = localStorage.getItem('flappy_player_profile');
+            if (savedProfile) {
+                profileName = JSON.parse(savedProfile).name;
+            }
+        } catch (e) {}
+
+        if (profileName) {
+            // Direkt submitName logic'ini çalıştır
+            const charType = window.characterManager ? window.characterManager.selectedCharacter : 'drone';
+            
+            // Loading state'i başlat ve modalı aç
+            this.isLoading = true;
+            const lbModal = document.getElementById('leaderboardModal');
+            if (lbModal) lbModal.classList.remove('hidden');
+            
+            const container = document.getElementById('leaderboardContent');
+            if (container) container.innerHTML = this.buildTableHTML();
+
+            // Firebase'e ekle
+            this.addScore(profileName, this.pendingScore, charType, this.pendingIsVictory);
+            return;
+        }
 
         const modal = document.getElementById('nameInputModal');
         const scoreDisplay = document.getElementById('nameInputScore');

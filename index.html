@@ -45,8 +45,49 @@
             </div>
         </div>
 
+        <!-- Global Kayıt / Profil Ekranı -->
+        <div id="welcomeProfileMenu" class="menu-overlay">
+            <div class="menu-header">
+                <div class="game-logo">
+                    <h1 class="logo-title">FLAPPY<br><span class="gradient-text">HORIZON</span></h1>
+                </div>
+                <p class="menu-subtitle" style="margin-top:10px; font-size:1.1rem; color: #a5b4fc;">Uçuş İzni İçin Profilini Oluştur</p>
+            </div>
+            
+            <div class="profile-form" style="width: 80%; max-width: 300px; margin: 0 auto; background: rgba(13, 20, 36, 0.8); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+                <div class="form-group" style="margin-bottom: 15px; text-align: left;">
+                    <label style="display:block; margin-bottom: 5px; color: #818cf8; font-weight: 600; font-size: 0.9rem;">Pilot Adı</label>
+                    <input type="text" id="profileName" placeholder="İsmini yaz..." maxlength="12" style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: white; font-family: 'Outfit', sans-serif; font-size: 1rem; outline: none; border-bottom: 2px solid #4f46e5;">
+                </div>
+                <div class="form-group" style="margin-bottom: 15px; text-align: left;">
+                    <label style="display:block; margin-bottom: 5px; color: #818cf8; font-weight: 600; font-size: 0.9rem;">Ülke (Müfredat)</label>
+                    <select id="profileCountry" style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: white; font-family: 'Outfit', sans-serif; font-size: 1rem; outline: none; border-bottom: 2px solid #4f46e5; appearance: none;">
+                        <option value="TR" selected>🇹🇷 Türkiye (TR)</option>
+                        <option value="US" disabled>🇺🇸 ABD (Yakında)</option>
+                        <option value="IN" disabled>🇮🇳 Hindistan (Yakında)</option>
+                        <option value="ES" disabled>🇪🇸 İspanya (Yakında)</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 15px; text-align: left;">
+                    <label style="display:block; margin-bottom: 5px; color: #818cf8; font-weight: 600; font-size: 0.9rem;">Sınıf Seviyesi</label>
+                    <select id="profileGrade" style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: rgba(0,0,0,0.5); color: white; font-family: 'Outfit', sans-serif; font-size: 1rem; outline: none; border-bottom: 2px solid #4f46e5; appearance: none;">
+                        <option value="1" selected>1. Sınıf</option>
+                        <option value="2" disabled>2. Sınıf (Yakında)</option>
+                        <option value="8" disabled>8. Sınıf - LGS (Yakında)</option>
+                        <option value="12" disabled>12. Sınıf - YKS (Yakında)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="menu-actions" style="margin-top:25px;">
+                <button id="btnSaveProfile" class="btn btn-primary pulse-anim" style="padding: 15px 40px;">
+                    KAYDET VE DEVAM ET
+                </button>
+            </div>
+        </div>
+
         <!-- Ana Menü -->
-        <div id="mainMenu" class="menu-overlay">
+        <div id="mainMenu" class="menu-overlay hidden">
             <div class="menu-header">
                 <div class="game-logo">
                     <span class="logo-sub">YENİ NESİL</span>
