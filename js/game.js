@@ -713,6 +713,12 @@ class GameEngine {
     }
 
     render() {
+        // Rotasyon ve küçültme (scale) sırasında kenarlarda kalan boşlukların 
+        // eski karelerle (framelerle) karışmasını (smearing) önlemek için ekranı temizle
+        this.ctx.clearRect(0, 0, this.width, this.height);
+        this.ctx.fillStyle = '#050b14'; // Oyunun genel arkaplan rengiyle uyumlu siyah/lacivert boşluk dolgusu
+        this.ctx.fillRect(0, 0, this.width, this.height);
+
         this.ctx.save();
 
         // Kamera Rotasyonu Uygulaması
