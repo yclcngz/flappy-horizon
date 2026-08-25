@@ -61,6 +61,8 @@ class GameEngine {
         // Kamera Yönlendirmesi (Kademeli ve Ani Değişimler İçin)
         this.cameraAngle = 0;
         this.targetCameraAngle = 0;
+        this.cameraScaleX = 1;
+        this.targetCameraScaleX = 1;
         this.lastRotationScore = 0; // Ani değişimleri kontrol etmek için
 
         // Efektler
@@ -151,6 +153,8 @@ class GameEngine {
         this.speed = this.baseSpeed;
         this.cameraAngle = 0;
         this.targetCameraAngle = 0;
+        this.cameraScaleX = 1;
+        this.targetCameraScaleX = 1;
         this.lastRotationScore = 0;
         this.player.y = this.height * 0.38;
         this.player.vy = -2.4;
@@ -686,27 +690,38 @@ class GameEngine {
         while (diff < -180) diff += 360;
         
         this.cameraAngle += diff * 0.05;
+        this.cameraScaleX += (this.targetCameraScaleX - this.cameraScaleX) * 0.05;
 
         if (this.state !== 'PLAYING') return;
 
         // Seviyelere göre yön belirleme
         if (this.score < 40) {
             this.targetCameraAngle = 0; // Normal (Soldan Sağa)
+            this.targetCameraScaleX = 1;
         } else if (this.score < 80) {
             this.targetCameraAngle = -90; // Aşağıdan Yukarıya (Zemin sağda)
+            this.targetCameraScaleX = 1;
         } else if (this.score < 120) {
-            this.targetCameraAngle = 180; // Sağdan Sola (Zemin tepede)
+            this.targetCameraAngle = 0; // Sağdan Sola (Yerçekimi AŞAĞI, sadece yatay aynalama)
+            this.targetCameraScaleX = -1;
         } else if (this.score < 160) {
             this.targetCameraAngle = 90; // Yukarıdan Aşağıya (Zemin solda)
+            this.targetCameraScaleX = 1;
         } else {
             // En zor seviye: Anlık ve rastgele değişim (her 20 puanda bir)
             if (this.score - this.lastRotationScore >= 20) {
-                const angles = [0, 90, 180, -90];
-                // Mevcut yönden farklı rastgele bir yön seç
-                let possibleAngles = angles.filter(a => a !== this.targetCameraAngle);
-                let newAngle = possibleAngles[Math.floor(Math.random() * possibleAngles.length)];
+                const modes = [
+                    { angle: 0, scale: 1 },    // Soldan sağa
+                    { angle: -90, scale: 1 },  // Aşağıdan yukarı
+                    { angle: 0, scale: -1 },   // Sağdan sola
+                    { angle: 90, scale: 1 }    // Yukarıdan aşağı
+                ];
+                let currentModeIndex = modes.findIndex(m => m.angle === this.targetCameraAngle && m.scale === this.targetCameraScaleX);
+                let possibleModes = modes.filter((m, i) => i !== currentModeIndex);
+                let newMode = possibleModes[Math.floor(Math.random() * possibleModes.length)];
                 
-                this.targetCameraAngle = newAngle;
+                this.targetCameraAngle = newMode.angle;
+                this.targetCameraScaleX = newMode.scale;
                 this.lastRotationScore = this.score;
             }
         }
@@ -722,16 +737,20 @@ class GameEngine {
         this.ctx.save();
 
         // Kamera Rotasyonu Uygulaması
-        if (Math.abs(this.cameraAngle) > 0.01) {
+        if (Math.abs(this.cameraAngle) > 0.01 || Math.abs(this.cameraScaleX - 1) > 0.01) {
             this.ctx.translate(this.width / 2, this.height / 2);
-            this.ctx.rotate(this.cameraAngle * Math.PI / 180);
+            
+            if (Math.abs(this.cameraAngle) > 0.01) {
+                this.ctx.rotate(this.cameraAngle * Math.PI / 180);
+            }
             
             // Eğer açı 90 veya -90 dereceye yakınsa (yatay/dikey değişimi),
-            // ekranın taşmamasını sağlamak için ölçekleme uygula (440 / 680)
-            // Yumuşak geçiş için açının kosinüsü ile oranlayalım
+            // ekranın taşmamasını sağlamak için aspect oranını koru
             const isVertical = Math.abs(Math.sin(this.cameraAngle * Math.PI / 180));
-            const scaleFactor = 1.0 - (1.0 - (this.width / this.height)) * isVertical;
-            this.ctx.scale(scaleFactor, scaleFactor);
+            const aspectScale = 1.0 - (1.0 - (this.width / this.height)) * isVertical;
+            
+            // X ekseni ayna (sağdan sola akış) ve boyut ölçeklemesini uygula
+            this.ctx.scale(this.cameraScaleX * aspectScale, aspectScale);
             
             this.ctx.translate(-this.width / 2, -this.height / 2);
         }
