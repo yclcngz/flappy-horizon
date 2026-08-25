@@ -205,9 +205,12 @@ class UIManager {
                 const optContainer = document.getElementById('mathOptionsContainer');
                 const resultDiv = document.getElementById('mathResult');
 
-                // Profil bilgilerine göre soru çek
+                // Profil bilgilerine göre sıradaki soruyu çek
                 const profile = this.playerProfile || { country: 'TR', grade: '1' };
-                const question = window.getRandomQuestion ? window.getRandomQuestion(profile.country, profile.grade) : null;
+                const currentIndex = profile.currentQuestionIndex || 0;
+                
+                const questionData = window.getNextQuestion ? window.getNextQuestion(profile.country, profile.grade, currentIndex) : null;
+                const question = questionData ? questionData.question : null;
 
                 if (!question) {
                     qText.innerText = "Şimdilik uygun soru bulunamadı! (Beleş +1 Can)";
@@ -247,8 +250,9 @@ class UIManager {
                             window.gameEngine.lives++;
                             window.gameEngine.extraLifeCooldown = 5;
 
-                            // Profil istatistiğini güncelle
+                            // Profil istatistiğini ve soru sırasını güncelle
                             if (window.uiManager && window.uiManager.playerProfile) {
+                                window.uiManager.playerProfile.currentQuestionIndex = questionData.nextIndex;
                                 if (!window.uiManager.playerProfile.correctAnswers) window.uiManager.playerProfile.correctAnswers = 0;
                                 window.uiManager.playerProfile.correctAnswers++;
                                 localStorage.setItem('flappy_player_profile', JSON.stringify(window.uiManager.playerProfile));

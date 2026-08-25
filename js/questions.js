@@ -55,8 +55,15 @@ window.questionBank = [
     }
 ];
 
-window.getRandomQuestion = function(country, grade) {
+window.getNextQuestion = function(country, grade, currentIndex) {
+    // Ülke ve sınıfa göre soruları filtrele (Sorular kolaydan zora sıralı varsayılır)
     const filtered = window.questionBank.filter(q => q.country === country && q.grade === grade);
     if (filtered.length === 0) return null;
-    return filtered[Math.floor(Math.random() * filtered.length)];
+    
+    // Index dizinin boyutunu aşarsa başa sar (modulo)
+    const safeIndex = currentIndex % filtered.length;
+    return {
+        question: filtered[safeIndex],
+        nextIndex: safeIndex + 1
+    };
 };
