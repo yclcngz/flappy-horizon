@@ -16,6 +16,7 @@ const i18n = {
         menuSound: "🔊 Ses Açık",
         // HUD
         hudScoreLabel: "SKOR",
+        hudBestScoreLabel: "REKOR",
         hudLevelLabel: "SEVİYE",
         btnMath: "🧠 Soru Çöz (+1 Can)",
         btnAd: "📺 Reklam İzle (+1 Can)",
@@ -29,8 +30,15 @@ const i18n = {
         modalAdWait: "Lütfen bekleyin...",
         modalAdReward: "✅ +1 CAN KAZANDIN!",
         modalGarageTitle: "Karakter Atölyesi",
-        modalLeaderboardTitle: "Global Liderlik Tablosu",
+        modalLeaderboardTitle: "🏆 Liderlik Tablosu",
         btnClose: "KAPAT",
+        // Dünyalar
+        levelCyber: "Neon Siber Şehir",
+        levelMountain: "Alp Dağ Zirveleri",
+        levelCity: "Metropol Gökdelenler",
+        levelArctic: "Kutup Buzulları",
+        levelOcean: "Mega Gemiler & Okyanus",
+        notifyNewWorld: "YENİ DÜNYA AÇILDI!",
         // Sınıflar
         grade1: "1. Sınıf",
         grade2: "2. Sınıf",
@@ -73,6 +81,7 @@ const i18n = {
         menuControls: "🖱️ Click • ⌨️ Space • 📱 Tap Screen",
         menuSound: "🔊 Sound On",
         hudScoreLabel: "SCORE",
+        hudBestScoreLabel: "BEST",
         hudLevelLabel: "LEVEL",
         btnMath: "🧠 Answer (+1 Life)",
         btnAd: "📺 Watch Ad (+1 Life)",
@@ -85,8 +94,14 @@ const i18n = {
         modalAdWait: "Please wait...",
         modalAdReward: "✅ +1 LIFE EARNED!",
         modalGarageTitle: "Character Garage",
-        modalLeaderboardTitle: "Global Leaderboard",
+        modalLeaderboardTitle: "🏆 Leaderboard",
         btnClose: "CLOSE",
+        levelCyber: "Neon Cyber City",
+        levelMountain: "Alpine Peaks",
+        levelCity: "Metro Skyscrapers",
+        levelArctic: "Arctic Glaciers",
+        levelOcean: "Mega Ships & Ocean",
+        notifyNewWorld: "NEW WORLD UNLOCKED!",
         grade1: "Grade 1",
         grade2: "Grade 2",
         grade3: "Grade 3",
@@ -141,6 +156,20 @@ window.setLanguage = function(lang) {
                 opt.innerText = i18n[lang]['grade' + val];
             }
         });
+    }
+
+    // Update level names dynamically
+    if (window.levelManager) {
+        const currentLevel = window.levelManager.getCurrentLevel();
+        const levelKey = 'level' + currentLevel.id.charAt(0).toUpperCase() + currentLevel.id.slice(1);
+        const translatedName = i18n[lang][levelKey] || currentLevel.name;
+        
+        const lblWorld = lang === 'en' ? 'World' : 'Dünya';
+        const subtitleEl = document.getElementById('menuLevelSubtitle');
+        if (subtitleEl) subtitleEl.innerText = `${lblWorld}: ${translatedName}`;
+        
+        const liveNameEl = document.getElementById('liveLevelName');
+        if (liveNameEl) liveNameEl.innerText = translatedName;
     }
 
     // Trigger HUD update if game is running

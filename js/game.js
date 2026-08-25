@@ -717,7 +717,14 @@ class GameEngine {
     updateHUD() {
         document.getElementById('liveScore').innerText = this.score;
         document.getElementById('liveBestScore').innerText = Math.max(this.score, this.bestScore);
-        document.getElementById('liveLevelName').innerText = window.levelManager.getCurrentLevel().name;
+        const currentLevel = window.levelManager.getCurrentLevel();
+        const levelKey = 'level' + currentLevel.id.charAt(0).toUpperCase() + currentLevel.id.slice(1);
+        const lang = window.currentLang || 'tr';
+        const translatedName = window.i18n && window.i18n[lang] && window.i18n[lang][levelKey] 
+            ? window.i18n[lang][levelKey] 
+            : currentLevel.name;
+        
+        document.getElementById('liveLevelName').innerText = translatedName;
         
         // Ekstra Can Butonlarını Güncelle
         const btnMath = document.getElementById('btnMathQuestion');

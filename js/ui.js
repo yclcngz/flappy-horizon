@@ -520,24 +520,35 @@ class UIManager {
         const currentLvlIdx = window.levelManager.currentLevelIndex;
 
         const levelIcons = ['⚡', '🏔️', '🏙️', '❄️', '🚢'];
+        const lang = window.currentLang || 'tr';
 
         window.levelManager.levels.forEach((lvl, idx) => {
             const card = document.createElement('div');
             card.className = `level-card ${idx === currentLvlIdx ? 'active' : ''}`;
+            
+            const levelKey = 'level' + lvl.id.charAt(0).toUpperCase() + lvl.id.slice(1);
+            const translatedName = window.i18n && window.i18n[lang] && window.i18n[lang][levelKey] 
+                ? window.i18n[lang][levelKey] 
+                : lvl.name;
+
+            const lblLevel = lang === 'en' ? 'Level' : 'Seviye';
+            const lblSelected = lang === 'en' ? 'Active' : 'Seçili';
+            const lblWorld = lang === 'en' ? 'World' : 'Dünya';
+
             card.innerHTML = `
                 <div class="level-icon">${levelIcons[idx] || '🌍'}</div>
                 <div class="level-info">
-                    <div class="level-title">Seviye ${idx + 1}: ${lvl.name}</div>
+                    <div class="level-title">${lblLevel} ${idx + 1}: ${translatedName}</div>
                     <div class="level-subtitle">${lvl.subtitle}</div>
                 </div>
-                ${idx === currentLvlIdx ? '<span class="badge-active">Seçili</span>' : ''}
+                ${idx === currentLvlIdx ? `<span class="badge-active">${lblSelected}</span>` : ''}
             `;
 
             card.addEventListener('click', () => {
-                window.soundSystem.playClick();
+                if (window.soundSystem) window.soundSystem.playClick();
                 window.levelManager.setLevel(idx);
                 this.renderLevelGrid();
-                document.getElementById('menuLevelSubtitle').innerText = `Dünya: ${lvl.name}`;
+                document.getElementById('menuLevelSubtitle').innerText = `${lblWorld}: ${translatedName}`;
             });
 
             container.appendChild(card);
