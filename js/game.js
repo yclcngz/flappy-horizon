@@ -813,6 +813,25 @@ class GameEngine {
                 this.updateHUD();
             }
         }
+        
+        // Ekranda aktif olan en yakın matematik sorusunu HUD'da göster
+        let activeQuestion = null;
+        for (let obs of this.obstacles) {
+            if (obs.isMathGate && !obs.passed && obs.x < this.width && obs.x + obs.width > 0) {
+                activeQuestion = obs.question;
+                break;
+            }
+        }
+        
+        const qUI = document.getElementById('activeMathQuestion');
+        if (qUI) {
+            if (activeQuestion) {
+                qUI.innerText = activeQuestion;
+                qUI.classList.remove('hidden');
+            } else {
+                qUI.classList.add('hidden');
+            }
+        }
     }
 
     activatePowerUp(type) {

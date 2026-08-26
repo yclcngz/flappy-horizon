@@ -336,7 +336,7 @@ class LevelManager {
             const playArea = height - groundHeight;
             this.renderObstacleBody(ctx, lvl, x, obsData.gapBottom2, obsWidth, playArea - obsData.gapBottom2, false);
             
-            // Soru levhasını çiz
+            // Soru levhasını (süs olarak) çiz
             ctx.shadowBlur = 0;
             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
             ctx.strokeStyle = '#fbbf24';
@@ -347,7 +347,7 @@ class LevelManager {
             ctx.fillStyle = '#fbbf24';
             ctx.font = 'bold 20px "Outfit", sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(obsData.question, x + obsWidth/2, 47);
+            ctx.fillText("?", x + obsWidth/2, 47); // Sadece ikonik bir soru işareti bırakalım
             
             // Üst boşluk değeri
             const topCenter = (obsData.gapTop1 + obsData.gapBottom1) / 2;
