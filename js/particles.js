@@ -124,7 +124,6 @@ class ParticleEngine {
                 color: Math.random() > 0.5 ? ringColor : '#ffffff'
             });
         }
-        }
     }
     
     // Uçuşan metin (Örn: +5 Puan, DOĞRU!, YANLIŞ!)
