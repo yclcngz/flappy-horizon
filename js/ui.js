@@ -134,6 +134,17 @@ class UIManager {
             if (modal) modal.classList.remove('hidden');
         });
 
+        // 5.5 MARKET (SHOP) AÇ/KAPAT
+        bindButton('btnOpenShop', () => {
+            if (typeof renderShop === 'function') renderShop(); // ui.js sonuna ekleyeceğimiz fonk
+            const modal = document.getElementById('shopModal');
+            if (modal) modal.classList.remove('hidden');
+        });
+        bindButton('btnCloseShop', () => {
+            const modal = document.getElementById('shopModal');
+            if (modal) modal.classList.add('hidden');
+        });
+
         // 6. KARAKTER ATÖLYESİ KAPAT
         bindButton('btnCloseGarage', () => {
             if (window.characterManager) {
@@ -867,6 +878,162 @@ class LeaderboardManager {
     }
 }
 
+// =========================================================================
+// MARKET & GELİŞTİRME SİSTEMİ (SHOP & UPGRADES)
+// =========================================================================
+
+window.UPGRADE_DATA = {
+    magnet: {
+        id: 'magnet',
+        icon: '🧲',
+        nameKey: 'shopMagnet',
+        descKey: 'shopDescMagnet',
+        maxLevel: 5,
+        baseCost: 20,
+        costMultiplier: 1.5,
+        color: '#ef4444'
+    },
+    shield: {
+        id: 'shield',
+        icon: '🔥',
+        nameKey: 'shopShield',
+        descKey: 'shopDescShield',
+        maxLevel: 5,
+        baseCost: 25,
+        costMultiplier: 1.5,
+        color: '#f97316'
+    },
+    tornado: {
+        id: 'tornado',
+        icon: '🌪️',
+        nameKey: 'shopTornado',
+        descKey: 'shopDescTornado',
+        maxLevel: 5,
+        baseCost: 30,
+        costMultiplier: 1.5,
+        color: '#94a3b8'
+    },
+    time: {
+        id: 'time',
+        icon: '⚡',
+        nameKey: 'shopTime',
+        descKey: 'shopDescTime',
+        maxLevel: 5,
+        baseCost: 40,
+        costMultiplier: 1.5,
+        color: '#a855f7'
+    }
+};
+
+window.getUpgradeLevel = function(id) {
+    if (!window.gameEngine) return 0;
+    return window.gameEngine.upgrades[id] || 0;
+};
+
+window.getUpgradeCost = function(id, level) {
+    const data = window.UPGRADE_DATA[id];
+    return Math.floor(data.baseCost * Math.pow(data.costMultiplier, level));
+};
+
+window.buyUpgrade = function(id) {
+    if (!window.gameEngine) return;
+    const currentLevel = window.getUpgradeLevel(id);
+    const data = window.UPGRADE_DATA[id];
+    
+    if (currentLevel >= data.maxLevel) return; // MAX
+    
+    const cost = window.getUpgradeCost(id, currentLevel);
+    if (window.gameEngine.goldBalance >= cost) {
+        // Satın Al!
+        window.gameEngine.goldBalance -= cost;
+        window.gameEngine.upgrades[id] = currentLevel + 1;
+        
+        // Kaydet
+        try {
+            localStorage.setItem('flappy_gold_balance', window.gameEngine.goldBalance.toString());
+            localStorage.setItem('flappy_upgrades', JSON.stringify(window.gameEngine.upgrades));
+        } catch(e){}
+        
+        if (window.soundSystem) window.soundSystem.playPowerUp();
+        window.renderShop(); // Arayüzü yenile
+        
+        // HUD'ı da yenile
+        if (window.gameEngine.updateHUD) window.gameEngine.updateHUD();
+    } else {
+        // Hata Sesi
+        if (window.soundSystem) window.soundSystem.playCharacterCrash('drone');
+        // Butonu titret
+        const btn = document.getElementById(`btnBuy_${id}`);
+        if (btn) {
+            btn.classList.add('hit');
+            setTimeout(() => btn.classList.remove('hit'), 300);
+        }
+    }
+};
+
+window.renderShop = function() {
+    const grid = document.getElementById('shopGrid');
+    const balEl = document.getElementById('shopGoldBalance');
+    if (!grid || !balEl || !window.gameEngine) return;
+
+    const lang = window.currentLang || 'tr';
+    balEl.innerText = window.gameEngine.goldBalance;
+
+    let html = '';
+
+    for (let key in window.UPGRADE_DATA) {
+        const item = window.UPGRADE_DATA[key];
+        const lvl = window.getUpgradeLevel(key);
+        const isMax = (lvl >= item.maxLevel);
+        const cost = isMax ? 0 : window.getUpgradeCost(key, lvl);
+        const canAfford = window.gameEngine.goldBalance >= cost;
+        
+        const titleStr = i18n[lang][item.nameKey] || item.nameKey;
+        const descStr = i18n[lang][item.descKey] || item.descKey;
+        const lvlLabel = i18n[lang]['shopUpgradeLvl'] || 'Level';
+        const maxLabel = i18n[lang]['shopMaxLvl'] || 'MAX';
+        
+        let btnText, btnClass, btnDisabled;
+        if (isMax) {
+            btnText = maxLabel;
+            btnClass = 'btn btn-secondary';
+            btnDisabled = 'disabled';
+        } else if (!canAfford) {
+            btnText = `<span style="font-size:0.85em;">🪙 ${cost}</span><br><span style="font-size:0.6em;">${i18n[lang]['shopInsufficient']||'Yetersiz'}</span>`;
+            btnClass = 'btn btn-secondary';
+            btnDisabled = '';
+        } else {
+            btnText = `🪙 ${cost}<br><span style="font-size:0.7em;">${i18n[lang]['shopBuy']||'Satın Al'}</span>`;
+            btnClass = 'btn btn-primary';
+            btnDisabled = '';
+        }
+
+        // Seviye barları
+        let bars = '';
+        for (let i = 1; i <= item.maxLevel; i++) {
+            const fill = (i <= lvl) ? item.color : '#334155';
+            bars += `<div style="flex: 1; height: 6px; background: ${fill}; border-radius: 3px; margin: 0 2px;"></div>`;
+        }
+
+        html += `
+            <div class="shop-card" style="background: rgba(30, 41, 59, 0.8); border: 2px solid ${item.color}; border-radius: 12px; padding: 12px; display: flex; align-items: center; gap: 15px;">
+                <div style="font-size: 2.5rem; background: rgba(0,0,0,0.4); padding: 10px; border-radius: 50%; min-width: 60px; text-align: center;">${item.icon}</div>
+                <div style="flex: 1;">
+                    <div style="font-size: 1.1rem; font-weight: bold; color: ${item.color}; margin-bottom: 4px;">${titleStr} <span style="color: #cbd5e1; font-size: 0.8rem; font-weight: normal;">(${lvlLabel} ${lvl})</span></div>
+                    <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 8px;">${descStr}</div>
+                    <div style="display: flex; width: 100%; max-width: 150px;">
+                        ${bars}
+                    </div>
+                </div>
+                <button id="btnBuy_${key}" class="${btnClass}" ${btnDisabled} style="padding: 8px 15px; border-radius: 8px; line-height: 1.2;" onclick="window.buyUpgrade('${key}')">
+                    ${btnText}
+                </button>
+            </div>
+        `;
+    }
+
+    grid.innerHTML = html;
+};
 window.uiManager = null;
 window.leaderboardManager = null;
 window.addEventListener('DOMContentLoaded', () => {

@@ -47,6 +47,7 @@ class GameEngine {
         this.bestScore = 0;
         this.ringsCollected = 0;
         this.goldBalance = 0;
+        this.upgrades = {}; // Market yükseltmeleri
 
         // Can Sistemi
         this.startLives = 3;
@@ -103,6 +104,11 @@ class GameEngine {
             const savedGold = localStorage.getItem('flappy_gold_balance');
             if (savedGold !== null) {
                 this.goldBalance = parseInt(savedGold, 10);
+            }
+            
+            const savedUpgrades = localStorage.getItem('flappy_upgrades');
+            if (savedUpgrades !== null) {
+                this.upgrades = JSON.parse(savedUpgrades);
             }
         } catch (e) {}
     }
@@ -745,6 +751,11 @@ class GameEngine {
             case 'time': this.powerUpDuration = 60 * 12; break; // 12 seconds
             case 'magnet': this.powerUpDuration = 60 * 15; break; // 15 seconds
         }
+        
+        // Market (Shop) Yükseltmeleri Etkisi: Her seviye başına ekstra +2 saniye
+        const upgradeLvl = this.upgrades[type] || 0;
+        this.powerUpDuration += (upgradeLvl * 60 * 2);
+        
         this.powerUpTimer = this.powerUpDuration;
     }
 

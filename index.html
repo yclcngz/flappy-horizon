@@ -124,9 +124,14 @@
                 <button id="btnStartGame" class="btn btn-primary pulse-anim" data-i18n="btnPlay">
                     <span class="btn-icon">🚀</span> HEMEN BAŞLA
                 </button>
-                <button id="btnOpenGarage" class="btn btn-secondary" data-i18n="btnGarage">
-                    <span class="btn-icon">🛠️</span> KARAKTER ATÖLYESİ
-                </button>
+                <div style="display: flex; gap: 10px; width: 100%; max-width: 320px; justify-content: center;">
+                    <button id="btnOpenGarage" class="btn btn-secondary" style="flex: 1;" data-i18n="btnGarage">
+                        <span class="btn-icon">🛠️</span> GARAJ
+                    </button>
+                    <button id="btnOpenShop" class="btn btn-secondary" style="flex: 1; background: linear-gradient(135deg, #10b981 0%, #059669 100%);" data-i18n="btnShop">
+                        <span class="btn-icon">🛒</span> MARKET
+                    </button>
+                </div>
                 <button id="btnOpenLevels" class="btn btn-tertiary" data-i18n="btnLevels">
                     <span class="btn-icon">🌍</span> SEVİYE VE DÜNYALAR
                 </button>
@@ -332,6 +337,24 @@
                             <input type="color" id="missileTrailColor" value="#ff9100" class="color-picker">
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Geliştirme Marketi (Shop Modal) -->
+        <div id="shopModal" class="modal-overlay hidden">
+            <div class="modal-card" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3 data-i18n="modalShopTitle">🛒 Geliştirme Marketi</h3>
+                    <button id="btnCloseShop" class="btn-close">✕</button>
+                </div>
+                
+                <div style="text-align: center; margin-bottom: 20px; font-size: 1.5rem; font-weight: bold; color: #fbbf24;">
+                    <span data-i18n="hudGoldLabel">ALTIN</span>: <span id="shopGoldBalance">0</span>
+                </div>
+
+                <div id="shopGrid" class="shop-grid" style="display: grid; gap: 15px; max-height: 60vh; overflow-y: auto; padding: 10px;">
+                    <!-- JS üzerinden kartlar dinamik olarak buraya basılacak -->
                 </div>
             </div>
         </div>
