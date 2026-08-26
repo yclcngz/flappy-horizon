@@ -494,7 +494,14 @@ class GameEngine {
         
         const currentGap = Math.max(140, 170 - this.score * 0.3);
         this.gapSize = currentGap;
-        const currentInterval = Math.max(105, 135 - this.score * 0.3);
+        
+        let currentInterval = Math.max(105, 135 - this.score * 0.3);
+        
+        // Zaman Bükücü aktifken hız yarıya düştüğü için engellerin üst üste
+        // binmemesi (fiziksel mesafenin korunması) adına üretim süresi 2 katına çıkarılır.
+        if (this.activePowerUp === 'time') {
+            currentInterval *= 2;
+        }
         this.obstacleInterval = currentInterval;
 
         // Skor bazlı otomatik arka plan değişimi
