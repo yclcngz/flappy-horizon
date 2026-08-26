@@ -735,14 +735,33 @@ class GameEngine {
                 this.applyMagnetEffect();
             }
             
-            if (this.powerUpTimer % 60 === 0) {
-                this.updateHUD(); // Saniye düştükçe arayüzü güncelle
+            // Saniye göstergesini her karede güncelle (Daha yumuşak bir akış için)
+            const puUI = document.getElementById('powerUpIndicator');
+            if (puUI) {
+                if (this.powerUpTimer > 0) {
+                    puUI.classList.remove('hidden');
+                    let icon = '';
+                    let color = '#fff';
+                    switch (this.activePowerUp) {
+                        case 'shield': icon = '🔥 KALKAN'; color = '#f97316'; break;
+                        case 'tornado': icon = '🌪️ KASIRGA'; color = '#94a3b8'; break;
+                        case 'time': icon = '⚡ ZAMAN'; color = '#a855f7'; break;
+                        case 'magnet': icon = '🧲 MIKNATIS'; color = '#ef4444'; break;
+                    }
+                    const sec = (this.powerUpTimer / 60).toFixed(1); // 8.5s gibi göster
+                    puUI.innerText = `${icon} (${sec}s)`;
+                    puUI.style.borderColor = color;
+                    puUI.style.boxShadow = `0 0 20px ${color}80`;
+                    puUI.style.textShadow = `0 0 10px ${color}`;
+                } else {
+                    puUI.classList.add('hidden');
+                }
             }
             
             if (this.powerUpTimer <= 0) {
                 this.activePowerUp = null;
+                // Sona erdiğinde genel UI yenilemesi
                 this.updateHUD();
-                // Deactivate effects (Time Bender speed reset handled dynamically)
             }
         }
     }
@@ -993,23 +1012,6 @@ class GameEngine {
             : currentLevel.name;
         
         document.getElementById('liveLevelName').innerText = translatedName;
-        
-        
-        const puUI = document.getElementById('powerUpIndicator');
-        if (this.activePowerUp && puUI) {
-            puUI.classList.remove('hidden');
-            let icon = '';
-            switch (this.activePowerUp) {
-                case 'shield': icon = '🔥 KALKAN'; break;
-                case 'tornado': icon = '🌪️ KASIRGA'; break;
-                case 'time': icon = '⚡ ZAMAN'; break;
-                case 'magnet': icon = '🧲 MIKNATIS'; break;
-            }
-            const sec = Math.ceil(this.powerUpTimer / 60);
-            puUI.innerText = `${icon} (${sec}s)`;
-        } else if (puUI) {
-            puUI.classList.add('hidden');
-        }
         
         // Ekstra Can Butonlarını Güncelle
         const btnMath = document.getElementById('btnMathQuestion');
