@@ -718,6 +718,8 @@ class GameEngine {
             }
         }
 
+        let needsHUDUpdate = false;
+        
         // Toplanabilirleri Güncelle (Altın, Elmas, Zümrüt, Yakut)
         for (let i = this.collectibles.length - 1; i >= 0; i--) {
             const item = this.collectibles[i];
@@ -748,8 +750,7 @@ class GameEngine {
                     }
                     
                     window.particleEngine.emitRingBurst(item.x, item.y, burstColor);
-                    this.saveGold();
-                    this.updateHUD();
+                    needsHUDUpdate = true;
                 }
             }
 
@@ -836,6 +837,11 @@ class GameEngine {
             } else {
                 if (!qUI.classList.contains('hidden')) qUI.classList.add('hidden');
             }
+        }
+        
+        if (needsHUDUpdate) {
+            this.saveGold();
+            this.updateHUD();
         }
     }
 
