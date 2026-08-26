@@ -638,7 +638,13 @@ class GameEngine {
             // Kasırga Etkisi
             if (this.activePowerUp === 'tornado' && obs.x > this.player.x) {
                 // Engelleri sağa doğru savur
-                obs.x += this.speed * 2;
+                obs.x += this.speed * 3; // Daha hızlı savur
+                
+                // Ekrandan çok uzağa savrulan engelleri tamamen sil ki üst üste binmesinler!
+                if (obs.x > this.width + 250) {
+                    this.obstacles.splice(i, 1);
+                    continue;
+                }
             }
 
             // Çarpışma Testi ve Yıkıcı Kalkan
