@@ -60,11 +60,14 @@ class GameEngine {
         // Can Kazanma Bekleme Süresi (Cooldown)
         this.extraLifeCooldown = 0; // Bir sonraki butonu açmak için uçulması gereken skor (başlangıçta 0)
 
-        // Özel Güçlendirmeler (Power-Ups)
+        // Güç Kapsülleri (Power-Ups)
+        this.powerUps = [];
         this.activePowerUp = null; // 'shield', 'tornado', 'time', 'magnet'
         this.powerUpTimer = 0;
         this.powerUpDuration = 0;
-        this.powerUps = [];
+        
+        // Hareketli Düşmanlar (Homing Missiles / Drones)
+        this.enemies = [];
 
         // Zafer Kontrolü
         this.victoryScore = Infinity;
@@ -590,9 +593,18 @@ class GameEngine {
                 this.spawnPowerUp();
             }
         }
+        
+        // Düşman Spawn logic (>300 puan ve rastgele ihtimal)
+        if (this.score >= 300 && Math.random() < 0.003) { // %0.3 per frame
+            if (this.enemies.length < 2) {
+                this.spawnEnemy();
+            }
+        }
 
         // Pencere sesi cooldown
         if (this.windowSoundCooldown > 0) this.windowSoundCooldown--;
+        
+        this.updateEnemies();
 
         // Engelleri Güncelle & Çarpışma Kontrolü
         for (let i = this.obstacles.length - 1; i >= 0; i--) {
@@ -630,16 +642,46 @@ class GameEngine {
             // Skor Sayımı
             if (!obs.passed && obs.x + obs.width < this.player.x) {
                 obs.passed = true;
-                const points = obs.isWalled ? 2 : 1;
-                this.score += points;
                 
-                // Can Kazanma Cooldown'ını düşür
-                if (this.extraLifeCooldown > 0) {
-                    this.extraLifeCooldown = Math.max(0, this.extraLifeCooldown - points);
-                }
+                if (obs.isMathGate) {
+                    // Hangi kapıdan geçtiğini Y eksenine bakarak anla
+                    const topCenter = (obs.gapTop1 + obs.gapBottom1) / 2;
+                    const bottomCenter = (obs.gapTop2 + obs.gapBottom2) / 2;
+                    const isTop = Math.abs(this.player.y - topCenter) < Math.abs(this.player.y - bottomCenter);
+                    
+                    if (isTop === obs.isTopCorrect) {
+                        // DOĞRU CEVAP!
+                        this.score += 5; // Matematik sorusu bonusu
+                        if (this.lives < this.maxLives) {
+                            this.lives++;
+                            this.updateHeartsUI();
+                        }
+                        window.soundSystem.playPowerUp();
+                        window.particleEngine.emitRingBurst(this.player.x, this.player.y, '#10b981'); // Yeşil parlama
+                        
+                        // İpucu veya Tebrik metni için geçici bir mesaj eklenebilir
+                        window.particleEngine.emitFloatingText(this.player.x, this.player.y - 30, "DOĞRU! +5 Puan", '#10b981');
+                    } else {
+                        // YANLIŞ CEVAP!
+                        window.particleEngine.emitFloatingText(this.player.x, this.player.y - 30, "YANLIŞ!", '#ef4444');
+                        if (this.loseLife()) {
+                            this.gameOver();
+                            return;
+                        }
+                    }
+                    this.updateHUD();
+                } else {
+                    const points = obs.isWalled ? 2 : 1;
+                    this.score += points;
+                    
+                    // Can Kazanma Cooldown'ını düşür
+                    if (this.extraLifeCooldown > 0) {
+                        this.extraLifeCooldown = Math.max(0, this.extraLifeCooldown - points);
+                    }
 
-                window.soundSystem.playScore();
-                this.updateHUD();
+                    window.soundSystem.playScore();
+                    this.updateHUD();
+                }
             }
 
             // Kasırga Etkisi
@@ -812,12 +854,16 @@ class GameEngine {
         const obsWidth = 64;
         this.normalObstacleCount++;
 
-        // Her 3-5 normal engelden sonra bir kapalı sütun (pencereli duvar) üret
-        const shouldSpawnWall = this.normalObstacleCount >= 3 + Math.floor(Math.random() * 3);
+        // Her 3-5 normal engelden sonra bir kapalı sütun (pencereli) VEYA Matematik Kapısı üret
+        const shouldSpawnSpecial = this.normalObstacleCount >= 3 + Math.floor(Math.random() * 3);
 
-        if (shouldSpawnWall) {
+        if (shouldSpawnSpecial) {
             this.normalObstacleCount = 0;
-            this.spawnWalledObstacle(obsWidth);
+            if (Math.random() > 0.5) {
+                this.spawnMathGate(obsWidth);
+            } else {
+                this.spawnWalledObstacle(obsWidth);
+            }
             return;
         }
 
@@ -913,6 +959,143 @@ class GameEngine {
         });
     }
 
+    spawnEnemy() {
+        const types = ['missile', 'drone'];
+        const type = types[Math.floor(Math.random() * types.length)];
+        // Düşman uyarı vererek başlar
+        this.enemies.push({
+            x: this.width - 40, // Sağ köşede uyarısı çıkacak
+            y: this.player.y,
+            width: 40,
+            height: 20,
+            type: type,
+            state: 'warning',
+            timer: 90, // 1.5 saniye uyarı süresi
+            speedY: (Math.random() > 0.5 ? 1 : -1) * 2
+        });
+    }
+    
+    updateEnemies() {
+        for (let i = this.enemies.length - 1; i >= 0; i--) {
+            let e = this.enemies[i];
+            
+            if (e.state === 'warning') {
+                e.timer--;
+                // Füzenin hedefini oyuncunun Y konumuna kilitle
+                e.y += (this.player.y - e.y) * 0.05;
+                if (e.timer <= 0) {
+                    e.state = 'active';
+                    e.x = this.width + 50; // Dışarıdan fırlasın
+                    if (window.soundSystem) window.soundSystem.playDescent('kartal'); // Füze sesi
+                }
+            } else if (e.state === 'active') {
+                e.x -= this.speed * 2.5; // Karakterden hızlı gelir
+                
+                if (e.type === 'missile') {
+                    // Homing (Güdümlü) hareket
+                    e.y += (this.player.y - e.y) * 0.02;
+                } else if (e.type === 'drone') {
+                    // Zikzak hareket
+                    e.y += e.speedY;
+                    if (e.y < 100 || e.y > this.height - this.groundHeight - 100) e.speedY *= -1;
+                }
+                
+                // Kalkan (Shield) veya Kasırga (Tornado) ile yok edilebilir
+                if (this.activePowerUp === 'tornado' && e.x > this.player.x) {
+                    e.x += this.speed * 4;
+                    e.y -= 10; // Havaya savrulur
+                }
+                
+                // Karakter Çarpışma Kontrolü
+                if (e.x < this.player.x + this.player.radius && e.x + e.width > this.player.x - this.player.radius &&
+                    e.y < this.player.y + this.player.radius && e.y + e.height > this.player.y - this.player.radius) {
+                    
+                    if (this.activePowerUp === 'shield') {
+                        // Kalkan düşmanı parçalar
+                        window.particleEngine.emitRingBurst(e.x, e.y, '#f97316');
+                        window.soundSystem.playPowerUp();
+                        this.enemies.splice(i, 1);
+                        this.score += 5;
+                        continue;
+                    } else {
+                        // Kalkan yoksa hasar al
+                        window.particleEngine.emitRingBurst(e.x, e.y, '#ef4444');
+                        this.enemies.splice(i, 1);
+                        if (this.loseLife()) {
+                            this.gameOver();
+                            return;
+                        }
+                        continue;
+                    }
+                }
+                
+                // Ekrandan çıktıysa sil
+                if (e.x < -100 || e.x > this.width + 500) {
+                    this.enemies.splice(i, 1);
+                }
+            }
+        }
+    }
+    
+    // Matematik Kapısı Üretici
+    spawnMathGate(obsWidth) {
+        // Soru Üretimi
+        const ops = ['+', '-', '*'];
+        const op = ops[Math.floor(Math.random() * ops.length)];
+        let a, b, correct;
+        
+        if (op === '+') {
+            a = Math.floor(Math.random() * 20) + 1;
+            b = Math.floor(Math.random() * 20) + 1;
+            correct = a + b;
+        } else if (op === '-') {
+            a = Math.floor(Math.random() * 20) + 10;
+            b = Math.floor(Math.random() * a);
+            correct = a - b;
+        } else {
+            a = Math.floor(Math.random() * 8) + 2;
+            b = Math.floor(Math.random() * 8) + 2;
+            correct = a * b;
+        }
+        
+        let wrong = correct + Math.floor(Math.random() * 5) + 1;
+        if (Math.random() > 0.5) wrong = correct - Math.floor(Math.random() * 5) - 1;
+        
+        const question = `${a} ${op} ${b} = ?`;
+        
+        const isTopCorrect = Math.random() > 0.5;
+        
+        // Kapı Boyutları
+        const playArea = this.height - this.groundHeight;
+        // 3 parça sütun olacak: Top, Middle, Bottom
+        // 2 adet gap olacak
+        const gapSize = 140; // Matematik kapısı için standart boşluk
+        const minSection = 50;
+        
+        // Üst boşluk merkezi
+        const topGapCenter = minSection + gapSize / 2;
+        // Orta sütun yüksekliği
+        const midSectionH = Math.max(50, Math.floor(Math.random() * 60) + 50);
+        // Alt boşluk merkezi
+        const bottomGapCenter = topGapCenter + gapSize/2 + midSectionH + gapSize/2;
+        
+        this.obstacles.push({
+            x: this.width + 20,
+            width: obsWidth,
+            isMathGate: true,
+            passed: false,
+            question: question,
+            gapSize: gapSize,
+            gapTop1: topGapCenter - gapSize/2,
+            gapBottom1: topGapCenter + gapSize/2,
+            gapTop2: bottomGapCenter - gapSize/2,
+            gapBottom2: bottomGapCenter + gapSize/2,
+            topVal: isTopCorrect ? correct : wrong,
+            bottomVal: isTopCorrect ? wrong : correct,
+            isTopCorrect: isTopCorrect
+        });
+    }
+
     // Kapalı Sütun + Açılır/Kapanır Pencere Üretici
     // Zamanlama: Oyun hızıyla senkronize - karakter ulaştığında pencere açık olur
     spawnWalledObstacle(obsWidth) {
@@ -972,7 +1155,17 @@ class GameEngine {
         // Karakter sütunun x aralığında mı?
         if (px + r > obs.x && px - r < obs.x + obs.width) {
 
-            if (obs.isWalled && obs.window) {
+            if (obs.isMathGate) {
+                // Üst parça: 0 ile gapTop1 arası
+                if (py - r < obs.gapTop1) return true;
+                // Orta parça: gapBottom1 ile gapTop2 arası
+                if (py + r > obs.gapBottom1 && py - r < obs.gapTop2) return true;
+                // Alt parça: gapBottom2 ile aşağısı
+                if (py + r > obs.gapBottom2) return true;
+                
+                return false;
+
+            } else if (obs.isWalled && obs.window) {
                 // Kapalı Sütun: Pencere açıksa pencereden geçebilir
                 const w = obs.window;
                 const currentWindowH = w.height * w.openProgress;
@@ -1090,6 +1283,74 @@ class GameEngine {
         ctx.textBaseline = 'middle';
         ctx.fillText(icon, 0, 0);
         
+        ctx.restore();
+    }
+    
+    drawEnemy(ctx, e) {
+        ctx.save();
+        if (e.state === 'warning') {
+            // Sağ tarafta yanıp sönen uyarı işareti
+            if (Math.floor(Date.now() / 100) % 2 === 0) {
+                ctx.fillStyle = '#ef4444'; // Kırmızı uyarı
+                ctx.font = 'bold 30px Arial';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('⚠️ DİKKAT', e.x, e.y);
+            }
+        } else if (e.state === 'active') {
+            ctx.translate(e.x, e.y);
+            
+            if (e.type === 'missile') {
+                // Füze Çizimi
+                // Gövde
+                ctx.fillStyle = '#b91c1c'; // Koyu kırmızı
+                ctx.beginPath();
+                ctx.ellipse(e.width/2, e.height/2, e.width/2, e.height/2, 0, 0, Math.PI * 2);
+                ctx.fill();
+                // Alev
+                const pulse = Math.random() * 10;
+                ctx.fillStyle = '#fbbf24';
+                ctx.beginPath();
+                ctx.moveTo(e.width, e.height/2);
+                ctx.lineTo(e.width + 10 + pulse, e.height/2 - 5);
+                ctx.lineTo(e.width + 10 + pulse, e.height/2 + 5);
+                ctx.closePath();
+                ctx.fill();
+                // Göz/Işık
+                ctx.fillStyle = '#fca5a5';
+                ctx.beginPath();
+                ctx.arc(10, e.height/2, 4, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (e.type === 'drone') {
+                // Drone Çizimi
+                ctx.fillStyle = '#1e293b'; // Koyu gri
+                ctx.fillRect(0, 0, e.width, e.height);
+                // Pervaneler (Animasyonlu)
+                const rot = Date.now() * 0.05;
+                ctx.save();
+                ctx.translate(5, -5);
+                ctx.rotate(rot);
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillRect(-10, -1, 20, 2);
+                ctx.restore();
+                ctx.save();
+                ctx.translate(e.width - 5, -5);
+                ctx.rotate(rot);
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillRect(-10, -1, 20, 2);
+                ctx.restore();
+                // Göz
+                ctx.fillStyle = '#ef4444'; // Kırmızı lazer göz
+                ctx.fillRect(e.width/2 - 4, e.height/2 - 2, 8, 4);
+                // Uyarı ışığı
+                if (Math.floor(Date.now() / 200) % 2 === 0) {
+                    ctx.fillStyle = 'rgba(239, 68, 68, 0.5)';
+                    ctx.beginPath();
+                    ctx.arc(e.width/2, e.height/2, 20, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            }
+        }
         ctx.restore();
     }
 
@@ -1216,6 +1477,11 @@ class GameEngine {
             if (!pu.collected) {
                 this.drawPowerUp(this.ctx, pu);
             }
+        }
+        
+        // Düşmanlar (Enemies)
+        for (let e of this.enemies) {
+            this.drawEnemy(this.ctx, e);
         }
 
         // 5. Zemin

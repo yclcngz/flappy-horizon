@@ -326,7 +326,44 @@ class LevelManager {
         ctx.shadowColor = lvl.obstacleBorder;
         ctx.shadowBlur = 8;
 
-        if (obsData && obsData.isWalled && obsData.window) {
+        if (obsData && obsData.isMathGate) {
+            // ====== MATEMATİK KAPISI ======
+            // Top pillar: 0 to gapTop1
+            this.renderObstacleBody(ctx, lvl, x, 0, obsWidth, obsData.gapTop1, true);
+            // Middle pillar: gapBottom1 to gapTop2
+            this.renderObstacleBody(ctx, lvl, x, obsData.gapBottom1, obsWidth, obsData.gapTop2 - obsData.gapBottom1, false);
+            // Bottom pillar: gapBottom2 to ground
+            const playArea = height - groundHeight;
+            this.renderObstacleBody(ctx, lvl, x, obsData.gapBottom2, obsWidth, playArea - obsData.gapBottom2, false);
+            
+            // Soru levhasını çiz
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 2;
+            ctx.fillRect(x - 20, 20, obsWidth + 40, 40);
+            ctx.strokeRect(x - 20, 20, obsWidth + 40, 40);
+            
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = 'bold 20px "Outfit", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(obsData.question, x + obsWidth/2, 47);
+            
+            // Üst boşluk değeri
+            const topCenter = (obsData.gapTop1 + obsData.gapBottom1) / 2;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.fillRect(x, obsData.gapTop1, obsWidth, obsData.gapBottom1 - obsData.gapTop1);
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillText(`[ ${obsData.topVal} ]`, x + obsWidth/2, topCenter + 6);
+            
+            // Alt boşluk değeri
+            const bottomCenter = (obsData.gapTop2 + obsData.gapBottom2) / 2;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.fillRect(x, obsData.gapTop2, obsWidth, obsData.gapBottom2 - obsData.gapTop2);
+            ctx.fillStyle = '#38bdf8';
+            ctx.fillText(`[ ${obsData.bottomVal} ]`, x + obsWidth/2, bottomCenter + 6);
+            
+        } else if (obsData && obsData.isWalled && obsData.window) {
             // ====== KAPALI SÜTUN + SÜRGÜ PENCERELİ DUVAR ======
             const w = obsData.window;
             const playArea = height - groundHeight;
