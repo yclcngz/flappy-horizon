@@ -124,6 +124,23 @@ class ParticleEngine {
                 color: Math.random() > 0.5 ? ringColor : '#ffffff'
             });
         }
+        }
+    }
+    
+    // Uçuşan metin (Örn: +5 Puan, DOĞRU!, YANLIŞ!)
+    emitFloatingText(x, y, text, color = '#ffffff') {
+        this.particles.push({
+            type: 'text',
+            text: text,
+            x: x,
+            y: y,
+            vx: 0,
+            vy: -1.5, // Yukarı doğru süzülme
+            size: 24, // Font boyutu
+            alpha: 1.0,
+            decay: 0.015,
+            color: color
+        });
     }
 
     // Çarpışma / Game Over patlaması
@@ -204,6 +221,13 @@ class ParticleEngine {
                 ctx.ellipse(0, 0, p.size, p.size * 0.35, 0, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
+            } else if (p.type === 'text') {
+                ctx.fillStyle = p.color;
+                ctx.font = `bold ${p.size}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.shadowBlur = 4;
+                ctx.shadowColor = '#000000';
+                ctx.fillText(p.text, p.x, p.y);
             } else {
                 ctx.fillStyle = p.color;
                 ctx.shadowBlur = (p.type === 'flame' || p.type === 'ring_spark' || p.type === 'drone_glow') ? 8 : 0;
