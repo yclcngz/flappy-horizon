@@ -866,12 +866,20 @@ class GameEngine {
     }
 
     spawnPowerUp() {
+        // Sadece ekranda alınmamış başka power-up yoksa üret
+        if (this.powerUps.length > 0) return;
+
         const types = ['shield', 'tornado', 'time', 'magnet'];
         const type = types[Math.floor(Math.random() * types.length)];
-        const yPos = Math.floor(Math.random() * (this.height - this.groundHeight - 100)) + 50;
+        const yPos = Math.floor(Math.random() * (this.height - this.groundHeight - 150)) + 75;
         
+        // Engel ile aynı hizada çıkmaması (duvara gömülmemesi) için
+        // x pozisyonunu engellerin tam ortasına (yaklaşık 150-180 piksel sonrasına) atıyoruz.
+        const distanceBetweenObstacles = this.obstacleInterval * this.speed;
+        const offset = distanceBetweenObstacles / 2; // Engellerin tam ortası
+
         this.powerUps.push({
-            x: this.width + 50,
+            x: this.width + 50 + offset,
             y: yPos,
             radius: 22,
             type: type,
