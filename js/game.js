@@ -788,7 +788,7 @@ class GameEngine {
             const puUI = document.getElementById('powerUpIndicator');
             if (puUI) {
                 if (this.powerUpTimer > 0) {
-                    puUI.classList.remove('hidden');
+                    if (puUI.classList.contains('hidden')) puUI.classList.remove('hidden');
                     let icon = '';
                     let color = '#fff';
                     switch (this.activePowerUp) {
@@ -798,12 +798,17 @@ class GameEngine {
                         case 'magnet': icon = '🧲 MIKNATIS'; color = '#ef4444'; break;
                     }
                     const sec = (this.powerUpTimer / 60).toFixed(1); // 8.5s gibi göster
-                    puUI.innerText = `${icon} (${sec}s)`;
-                    puUI.style.borderColor = color;
-                    puUI.style.boxShadow = `0 0 20px ${color}80`;
-                    puUI.style.textShadow = `0 0 10px ${color}`;
+                    const newText = `${icon} (${sec}s)`;
+                    
+                    // DOM Thrashing önlemek için sadece değiştiğinde güncelle
+                    if (puUI.innerText !== newText) {
+                        puUI.innerText = newText;
+                        puUI.style.borderColor = color;
+                        puUI.style.boxShadow = `0 0 20px ${color}80`;
+                        puUI.style.textShadow = `0 0 10px ${color}`;
+                    }
                 } else {
-                    puUI.classList.add('hidden');
+                    if (!puUI.classList.contains('hidden')) puUI.classList.add('hidden');
                 }
             }
             
@@ -826,10 +831,10 @@ class GameEngine {
         const qUI = document.getElementById('activeMathQuestion');
         if (qUI) {
             if (activeQuestion) {
-                qUI.innerText = activeQuestion;
-                qUI.classList.remove('hidden');
+                if (qUI.innerText !== activeQuestion) qUI.innerText = activeQuestion;
+                if (qUI.classList.contains('hidden')) qUI.classList.remove('hidden');
             } else {
-                qUI.classList.add('hidden');
+                if (!qUI.classList.contains('hidden')) qUI.classList.add('hidden');
             }
         }
     }
