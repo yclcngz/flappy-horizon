@@ -67,23 +67,61 @@ class UIManager {
                 alert('Lütfen uçuş izni için pilot adını gir!');
                 return;
             }
-            
-            this.playerProfile = {
-                name: nameInput,
-                country: countryInput,
-                grade: gradeInput
-            };
-            
-            localStorage.setItem('flappy_player_profile', JSON.stringify(this.playerProfile));
-            
-            // Leaderboard'ı yeni kategoriye göre güncelle
-            if (window.leaderboardManager) {
-                window.leaderboardManager.db = firebase.database().ref(`global_leaderboard_${countryInput}_${gradeInput}`);
-                window.leaderboardManager.loadScores();
+
+            // Benzersiz İsim Kontrolü (Global Users Havuzu)
+            const btn = document.getElementById('btnSaveProfile');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Kontrol ediliyor...';
+            btn.disabled = true;
+
+            const safeKey = nameInput.toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (safeKey.length < 3) {
+                alert('İsim en az 3 harf/rakam içermelidir (Özel karakterler hariç).');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
             }
 
-            document.getElementById('welcomeProfileMenu').classList.add('hidden');
-            document.getElementById('mainMenu').classList.remove('hidden');
+            const usersRef = firebase.database().ref('users/' + safeKey);
+            usersRef.once('value').then((snapshot) => {
+                if (snapshot.exists()) {
+                    alert('Bu kullanıcı ismi başkası tarafından alınmıştır, lütfen başka bir isim girin.');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                } else {
+                    // İsim müsait, kaydet
+                    usersRef.set({
+                        name: nameInput,
+                        country: countryInput,
+                        grade: gradeInput,
+                        createdAt: firebase.database.ServerValue.TIMESTAMP
+                    }).then(() => {
+                        this.playerProfile = {
+                            name: nameInput,
+                            country: countryInput,
+                            grade: gradeInput,
+                            userId: safeKey
+                        };
+                        
+                        localStorage.setItem('flappy_player_profile', JSON.stringify(this.playerProfile));
+                        
+                        // Leaderboard'ı yeni kategoriye göre güncelle
+                        if (window.leaderboardManager) {
+                            window.leaderboardManager.db = firebase.database().ref(`global_leaderboard_${countryInput}_${gradeInput}`);
+                            window.leaderboardManager.loadScores();
+                        }
+
+                        document.getElementById('welcomeProfileMenu').classList.add('hidden');
+                        document.getElementById('mainMenu').classList.remove('hidden');
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    });
+                }
+            }).catch(err => {
+                alert('Bağlantı hatası: ' + err.message);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
         });
 
         // 1. HEMEN BAŞLA
@@ -699,9 +737,15 @@ class LeaderboardManager {
         return score > this.scores[this.scores.length - 1].score;
     }
 
-    addScore(name, score, charType, isVictory = false) {
+    addScore(name, score, charType, isVictory = false, userId = null) {
         const cleanName = (name && name.trim().length > 0) ? name.trim().substring(0, 12) : 'Pilot';
         const numScore = parseInt(score, 10) || 0;
+        
+        // userId yoksa isminden safeKey üretelim (geriye dönük uyumluluk veya misafir girişleri için)
+        if (!userId) {
+            userId = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (userId.length < 3) userId = 'guest_' + Math.floor(Math.random() * 10000);
+        }
 
         const hasBadge = window.uiManager && window.uiManager.playerProfile && window.uiManager.playerProfile.correctAnswers >= 10;
         
@@ -715,12 +759,34 @@ class LeaderboardManager {
             timestamp: firebase.database.ServerValue.TIMESTAMP
         };
 
-        // Firebase'e yeni kayıt olarak it (push)
-        this.db.push(newEntry).then(() => {
-            // Eklendikten sonra listeyi tekrar çek ve göster
-            this.showLeaderboard();
+        const userScoreRef = this.db.child(userId);
+        
+        userScoreRef.once('value').then((snapshot) => {
+            if (snapshot.exists()) {
+                const existingData = snapshot.val();
+                // Sadece yeni skor eskisinden yüksekse güncelle!
+                if (numScore > existingData.score) {
+                    userScoreRef.set(newEntry).then(() => {
+                        this.showLeaderboard();
+                    }).catch(err => {
+                        console.error("Firebase skor güncelleme hatası:", err);
+                        this.showLeaderboard();
+                    });
+                } else {
+                    // Skor rekoru kırılamadı, tabloyu sadece göster
+                    this.showLeaderboard();
+                }
+            } else {
+                // Kullanıcı bu tabloda ilk defa skor yapıyor
+                userScoreRef.set(newEntry).then(() => {
+                    this.showLeaderboard();
+                }).catch(err => {
+                    console.error("Firebase yeni skor kaydetme hatası:", err);
+                    this.showLeaderboard();
+                });
+            }
         }).catch(err => {
-            console.error("Firebase skor kaydetme hatası:", err);
+            console.error("Firebase skor okuma hatası:", err);
             this.showLeaderboard();
         });
     }
@@ -731,10 +797,13 @@ class LeaderboardManager {
 
         // Eğer profilde isim varsa, isim sorma, direkt kaydet!
         let profileName = null;
+        let profileUserId = null;
         try {
             const savedProfile = localStorage.getItem('flappy_player_profile');
             if (savedProfile) {
-                profileName = JSON.parse(savedProfile).name;
+                const p = JSON.parse(savedProfile);
+                profileName = p.name;
+                profileUserId = p.userId;
             }
         } catch (e) {}
 
@@ -751,7 +820,7 @@ class LeaderboardManager {
             if (container) container.innerHTML = this.buildTableHTML();
 
             // Firebase'e ekle
-            this.addScore(profileName, this.pendingScore, charType, this.pendingIsVictory);
+            this.addScore(profileName, this.pendingScore, charType, this.pendingIsVictory, profileUserId);
             return;
         }
 
