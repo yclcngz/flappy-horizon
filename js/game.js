@@ -235,21 +235,17 @@ class GameEngine {
     
     startMathPause(obs) {
         this.state = 'MATH_PAUSED';
-        this.mathPauseTimer = 10;
+        this.mathPauseTimer = 5;
         this.player.vy = 0; // Karakter havada asılı kalsın
         this.player.gravity = 0;
         
         // Modalı güncelle ve aç
         const modal = document.getElementById('mathGatePauseModal');
         const qUI = document.getElementById('mathModalQuestion');
-        const ansTop = document.getElementById('mathModalAnsTop');
-        const ansBottom = document.getElementById('mathModalAnsBottom');
         const timerUI = document.getElementById('mathModalTimer');
         
-        if (modal && qUI && ansTop && ansBottom && timerUI) {
+        if (modal && qUI && timerUI) {
             qUI.innerText = obs.question;
-            ansTop.innerText = obs.topVal;
-            ansBottom.innerText = obs.bottomVal;
             timerUI.innerText = this.mathPauseTimer;
             modal.classList.remove('hidden');
         }
@@ -272,9 +268,38 @@ class GameEngine {
         const modal = document.getElementById('mathGatePauseModal');
         if (modal) modal.classList.add('hidden');
         
-        this.state = 'PLAYING';
-        this.player.gravity = 0.20; // Yerçekimini geri ver
-        this.player.vy = -2.0; // Ufak bir sıçramayla başlasın
+        this.state = 'MATH_RESUMING'; // Bu statüde oyun döngüsü hala donuk kalacak
+        let unpauseTimer = 3;
+        const overlay = document.getElementById('unpauseCountdownOverlay');
+        const overlayText = document.getElementById('unpauseCountdownText');
+        
+        if (overlay && overlayText) {
+            overlayText.innerText = unpauseTimer;
+            overlay.classList.remove('hidden');
+            
+            // 3-2-1 Geri sayım
+            const unpauseInterval = setInterval(() => {
+                unpauseTimer--;
+                if (unpauseTimer > 0) {
+                    overlayText.innerText = unpauseTimer;
+                } else if (unpauseTimer === 0) {
+                    overlayText.innerText = 'UÇ!';
+                } else {
+                    clearInterval(unpauseInterval);
+                    overlay.classList.add('hidden');
+                    
+                    // Oyunu gerçekten başlat
+                    this.state = 'PLAYING';
+                    this.player.gravity = 0.20; // Yerçekimini geri ver
+                    this.player.vy = -2.0; // Ufak bir sıçramayla başlasın
+                }
+            }, 1000);
+        } else {
+            // Fallback (HTML yoksa)
+            this.state = 'PLAYING';
+            this.player.gravity = 0.20;
+            this.player.vy = -2.0;
+        }
     }
 
     gameOver() {
