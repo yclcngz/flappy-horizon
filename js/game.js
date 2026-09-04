@@ -232,6 +232,50 @@ class GameEngine {
 
         window.soundSystem.startBGM();
     }
+    
+    startMathPause(obs) {
+        this.state = 'MATH_PAUSED';
+        this.mathPauseTimer = 10;
+        this.player.vy = 0; // Karakter havada asılı kalsın
+        this.player.gravity = 0;
+        
+        // Modalı güncelle ve aç
+        const modal = document.getElementById('mathQuestionModal');
+        const qUI = document.getElementById('mathModalQuestion');
+        const ansTop = document.getElementById('mathModalAnsTop');
+        const ansBottom = document.getElementById('mathModalAnsBottom');
+        const timerUI = document.getElementById('mathModalTimer');
+        
+        if (modal && qUI && ansTop && ansBottom && timerUI) {
+            qUI.innerText = obs.question;
+            ansTop.innerText = obs.topVal;
+            ansBottom.innerText = obs.bottomVal;
+            timerUI.innerText = this.mathPauseTimer;
+            modal.classList.remove('hidden');
+        }
+        
+        // 1 saniyelik aralıklarla sayacı düşür
+        this.mathInterval = setInterval(() => {
+            this.mathPauseTimer--;
+            if (timerUI) timerUI.innerText = this.mathPauseTimer;
+            
+            if (this.mathPauseTimer <= 0) {
+                this.resumeFromMathPause();
+            }
+        }, 1000);
+    }
+    
+    resumeFromMathPause() {
+        if (this.state !== 'MATH_PAUSED') return;
+        
+        clearInterval(this.mathInterval);
+        const modal = document.getElementById('mathQuestionModal');
+        if (modal) modal.classList.add('hidden');
+        
+        this.state = 'PLAYING';
+        this.player.gravity = 0.20; // Yerçekimini geri ver
+        this.player.vy = -2.0; // Ufak bir sıçramayla başlasın
+    }
 
     gameOver() {
         if (this.state === 'GAMEOVER') return;
@@ -610,6 +654,13 @@ class GameEngine {
         for (let i = this.obstacles.length - 1; i >= 0; i--) {
             const obs = this.obstacles[i];
             obs.x -= this.speed;
+            
+            // Faz 3: Matematik Molası Tetikleme
+            if (obs.isMathGate && !obs.isPaused && obs.x < this.width - 150) {
+                obs.isPaused = true;
+                this.startMathPause(obs);
+                return; // Döngüyü kır ve frame'i burada sonlandır
+            }
 
             // Kapalı Sütun Pencere Animasyonu
             if (obs.isWalled && obs.window) {
@@ -817,25 +868,6 @@ class GameEngine {
                 this.activePowerUp = null;
                 // Sona erdiğinde genel UI yenilemesi
                 this.updateHUD();
-            }
-        }
-        
-        // Ekranda aktif olan en yakın matematik sorusunu HUD'da göster
-        let activeQuestion = null;
-        for (let obs of this.obstacles) {
-            if (obs.isMathGate && !obs.passed && obs.x < this.width && obs.x + obs.width > 0) {
-                activeQuestion = obs.question;
-                break;
-            }
-        }
-        
-        const qUI = document.getElementById('activeMathQuestion');
-        if (qUI) {
-            if (activeQuestion) {
-                if (qUI.innerText !== activeQuestion) qUI.innerText = activeQuestion;
-                if (qUI.classList.contains('hidden')) qUI.classList.remove('hidden');
-            } else {
-                if (!qUI.classList.contains('hidden')) qUI.classList.add('hidden');
             }
         }
         
@@ -1095,31 +1127,24 @@ class GameEngine {
         
         const isTopCorrect = Math.random() > 0.5;
         
-        // Kapı Boyutları
+        // Yeni Devasa Kapı (Faz 3) - Ortada sadece tek bir ayraç blok olacak
         const playArea = this.height - this.groundHeight;
-        // 3 parça sütun olacak: Top, Middle, Bottom
-        // 2 adet gap olacak
-        const gapSize = 140; // Matematik kapısı için standart boşluk
-        const minSection = 50;
-        
-        // Üst boşluk merkezi
-        const topGapCenter = minSection + gapSize / 2;
-        // Orta sütun yüksekliği
-        const midSectionH = Math.max(50, Math.floor(Math.random() * 60) + 50);
-        // Alt boşluk merkezi
-        const bottomGapCenter = topGapCenter + gapSize/2 + midSectionH + gapSize/2;
+        const midY = playArea / 2;
+        const separatorThickness = 40; // Ortadaki ince ayraç bloğunun kalınlığı
         
         this.obstacles.push({
             x: this.width + 20,
             width: obsWidth,
             isMathGate: true,
             passed: false,
+            isPaused: false, // Düşünme molası için eklendi
             question: question,
-            gapSize: gapSize,
-            gapTop1: topGapCenter - gapSize/2,
-            gapBottom1: topGapCenter + gapSize/2,
-            gapTop2: bottomGapCenter - gapSize/2,
-            gapBottom2: bottomGapCenter + gapSize/2,
+            // Üst boşluk ekranın en üstünden orta bloğun üstüne kadar
+            gapTop1: 0,
+            gapBottom1: midY - separatorThickness / 2,
+            // Alt boşluk orta bloğun altından zemine kadar
+            gapTop2: midY + separatorThickness / 2,
+            gapBottom2: playArea,
             topVal: isTopCorrect ? correct : wrong,
             bottomVal: isTopCorrect ? wrong : correct,
             isTopCorrect: isTopCorrect

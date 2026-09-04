@@ -117,6 +117,13 @@ class UIManager {
                 window.leaderboardManager.showLeaderboard();
             }
         });
+        
+        // 4.1. MATEMATİK DÜŞÜNME MOLASI (HAZIRIM)
+        bindButton('btnMathReady', () => {
+            if (window.gameEngine && window.gameEngine.state === 'MATH_PAUSED') {
+                window.gameEngine.resumeFromMathPause();
+            }
+        });
         // 4.5. DİL / ÜLKE DEĞİŞİMİ
         const profileCountry = document.getElementById('profileCountry');
         if (profileCountry) {

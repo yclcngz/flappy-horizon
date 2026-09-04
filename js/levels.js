@@ -327,42 +327,48 @@ class LevelManager {
         ctx.shadowBlur = 8;
 
         if (obsData && obsData.isMathGate) {
-            // ====== MATEMATİK KAPISI ======
-            // Top pillar: 0 to gapTop1
-            this.renderObstacleBody(ctx, lvl, x, 0, obsWidth, obsData.gapTop1, true);
-            // Middle pillar: gapBottom1 to gapTop2
-            this.renderObstacleBody(ctx, lvl, x, obsData.gapBottom1, obsWidth, obsData.gapTop2 - obsData.gapBottom1, false);
-            // Bottom pillar: gapBottom2 to ground
+            // ====== YENİ DEVASA MATEMATİK KAPISI (Faz 3) ======
             const playArea = height - groundHeight;
-            this.renderObstacleBody(ctx, lvl, x, obsData.gapBottom2, obsWidth, playArea - obsData.gapBottom2, false);
             
-            // Soru levhasını (süs olarak) çiz
+            // 1. Üst Alan (Mavi)
             ctx.shadowBlur = 0;
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.strokeStyle = '#fbbf24';
-            ctx.lineWidth = 2;
-            ctx.fillRect(x - 20, 20, obsWidth + 40, 40);
-            ctx.strokeRect(x - 20, 20, obsWidth + 40, 40);
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.15)'; // Hafif mavi
+            ctx.fillRect(x, 0, obsWidth, obsData.gapBottom1);
             
-            ctx.fillStyle = '#fbbf24';
-            ctx.font = 'bold 20px "Outfit", sans-serif';
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.8)';
+            ctx.font = 'bold 24px "Outfit", sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText("?", x + obsWidth/2, 47); // Sadece ikonik bir soru işareti bırakalım
+            ctx.fillText(`[ ${obsData.topVal} ]`, x + obsWidth/2, obsData.gapBottom1 / 2);
             
-            // Üst boşluk değeri
-            const topCenter = (obsData.gapTop1 + obsData.gapBottom1) / 2;
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-            ctx.fillRect(x, obsData.gapTop1, obsWidth, obsData.gapBottom1 - obsData.gapTop1);
-            ctx.fillStyle = '#38bdf8';
-            ctx.fillText(`[ ${obsData.topVal} ]`, x + obsWidth/2, topCenter + 6);
+            // 2. Alt Alan (Turuncu)
+            ctx.fillStyle = 'rgba(249, 115, 22, 0.15)'; // Hafif turuncu
+            ctx.fillRect(x, obsData.gapTop2, obsWidth, playArea - obsData.gapTop2);
             
-            // Alt boşluk değeri
-            const bottomCenter = (obsData.gapTop2 + obsData.gapBottom2) / 2;
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-            ctx.fillRect(x, obsData.gapTop2, obsWidth, obsData.gapBottom2 - obsData.gapTop2);
-            ctx.fillStyle = '#38bdf8';
-            ctx.fillText(`[ ${obsData.bottomVal} ]`, x + obsWidth/2, bottomCenter + 6);
+            ctx.fillStyle = 'rgba(249, 115, 22, 0.8)';
+            ctx.fillText(`[ ${obsData.bottomVal} ]`, x + obsWidth/2, obsData.gapTop2 + (playArea - obsData.gapTop2)/2);
             
+            // 3. Ortadaki Ayraç Blok (Neon Çizgi)
+            const separatorY = obsData.gapBottom1;
+            const separatorH = obsData.gapTop2 - obsData.gapBottom1;
+            
+            ctx.shadowColor = '#0ea5e9';
+            ctx.shadowBlur = 15;
+            
+            // Ayraç gövdesi
+            const grad = ctx.createLinearGradient(x, separatorY, x + obsWidth, separatorY);
+            grad.addColorStop(0, '#0ea5e9');
+            grad.addColorStop(0.5, '#fbbf24');
+            grad.addColorStop(1, '#f97316');
+            
+            ctx.fillStyle = grad;
+            ctx.fillRect(x, separatorY, obsWidth, separatorH);
+            
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, separatorY, obsWidth, separatorH);
+            
+            ctx.restore();
+            return;
         } else if (obsData && obsData.isWalled && obsData.window) {
             // ====== KAPALI SÜTUN + SÜRGÜ PENCERELİ DUVAR ======
             const w = obsData.window;
