@@ -240,7 +240,7 @@ class GameEngine {
         this.player.gravity = 0;
         
         // Modalı güncelle ve aç
-        const modal = document.getElementById('mathQuestionModal');
+        const modal = document.getElementById('mathGatePauseModal');
         const qUI = document.getElementById('mathModalQuestion');
         const ansTop = document.getElementById('mathModalAnsTop');
         const ansBottom = document.getElementById('mathModalAnsBottom');
@@ -269,7 +269,7 @@ class GameEngine {
         if (this.state !== 'MATH_PAUSED') return;
         
         clearInterval(this.mathInterval);
-        const modal = document.getElementById('mathQuestionModal');
+        const modal = document.getElementById('mathGatePauseModal');
         if (modal) modal.classList.add('hidden');
         
         this.state = 'PLAYING';
